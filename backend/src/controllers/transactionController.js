@@ -201,38 +201,15 @@ const getTransactions = async (req, res, next) => {
 };
 
 /**
- * Update a transaction (for returns)
+ * Update a transaction
  * PUT /api/transactions/:id
  */
 const updateTransaction = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { jarsReturned } = req.body;
+    const { date, jarsSold, jarsReturned } = req.body;
 
-    // Validate jarsReturned
-    if (jarsReturned === undefined || jarsReturned === null) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'عدد البرطمانات المرتجعة مطلوب',
-          details: {},
-        },
-      });
-    }
-
-    if (!Number.isInteger(jarsReturned) || jarsReturned < 0) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'عدد البرطمانات المرتجعة يجب أن يكون عدد صحيح غير سالب',
-          details: {},
-        },
-      });
-    }
-
-    // Find and update transaction
+    // Find transaction
     const transaction = await Transaction.findOne({ id });
 
     if (!transaction) {
@@ -246,7 +223,39 @@ const updateTransaction = async (req, res, next) => {
       });
     }
 
-    transaction.jarsReturned = jarsReturned;
+    // Update fields if provided
+    if (date !== undefined) {
+      transaction.date = new Date(date);
+    }
+
+    if (jarsSold !== undefined) {
+      if (!Number.isInteger(jarsSold) || jarsSold < 0) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'عدد البرطمانات المباعة يجب أن يكون عدد صحيح غير سالب',
+            details: {},
+          },
+        });
+      }
+      transaction.jarsSold = jarsSold;
+    }
+
+    if (jarsReturned !== undefined) {
+      if (!Number.isInteger(jarsReturned) || jarsReturned < 0) {
+        return res.status(400).json({
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'عدد البرطمانات المرتجعة يجب أن يكون عدد صحيح غير سالب',
+            details: {},
+          },
+        });
+      }
+      transaction.jarsReturned = jarsReturned;
+    }
+
     await transaction.save();
 
     res.json({
