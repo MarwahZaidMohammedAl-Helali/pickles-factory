@@ -1,8 +1,7 @@
 services:
   - type: web
     name: pickles-factory-backend
-    env: node
-    region: oregon
+    runtime: node
     plan: free
     buildCommand: cd backend && npm install
     startCommand: cd backend && npm start
@@ -15,12 +14,3 @@ services:
         value: 7d
       - key: CREATE_ADMIN_ON_START
         value: true
-      - key: MONGODB_URI
-        fromDatabase:
-          name: pickles-factory-db
-          property: connectionString
-
-databases:
-  - name: pickles-factory-db
-    databaseName: pickles_factory
-    plan: free
