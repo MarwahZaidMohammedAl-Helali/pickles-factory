@@ -23,6 +23,7 @@ const initializeApp = async () => {
         const admin = new User({
           username: 'admin',
           passwordHash,
+          plainPassword: 'admin123',
           role: 'admin',
         });
         await admin.save();
@@ -71,6 +72,7 @@ app.post('/setup-admin', async (req, res) => {
     const admin = new User({
       username: 'admin',
       passwordHash,
+      plainPassword: 'admin123',
       role: 'admin',
     });
 

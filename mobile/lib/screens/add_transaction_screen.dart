@@ -134,9 +134,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       return;
     }
 
-    if (_selectedRestaurantId == null || _selectedProductId == null) {
+    // If restaurant is pre-selected from widget, use it
+    final restaurantId = _selectedRestaurantId ?? widget.restaurantId;
+    
+    if (restaurantId == null) {
       setState(() {
-        _errorMessage = 'يرجى اختيار المطعم والمنتج';
+        _errorMessage = 'يرجى اختيار المطعم';
       });
       return;
     }
@@ -163,11 +166,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       } else {
         // Create new delivery transaction
         await _transactionService.addTransaction(
-          restaurantId: _selectedRestaurantId!,
+          restaurantId: restaurantId,
           productId: _selectedProductId!,
           date: _deliveryDate,
           jarsSold: int.parse(_jarsDeliveredController.text),
-          jarsReturned: 0, // No returns yet
+          jarsReturned: int.parse(_jarsReturnedController.text.isEmpty ? '0' : _jarsReturnedController.text),
         );
       }
 
@@ -229,38 +232,39 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                         ),
                       const SizedBox(height: 16),
                       
-                      // Restaurant selector
-                      DropdownButtonFormField<String>(
-                        value: _selectedRestaurantId,
-                        decoration: InputDecoration(
-                          labelText: l10n.selectRestaurant,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
+                      // Restaurant selector (only show if not pre-selected)
+                      if (widget.restaurantId == null)
+                        DropdownButtonFormField<String>(
+                          value: _selectedRestaurantId,
+                          decoration: InputDecoration(
+                            labelText: l10n.selectRestaurant,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            filled: true,
+                            prefixIcon: const Icon(Icons.restaurant),
                           ),
-                          filled: true,
-                          prefixIcon: const Icon(Icons.restaurant),
+                          items: _restaurants?.map((restaurant) {
+                            return DropdownMenuItem(
+                              value: restaurant.id,
+                              child: Text(restaurant.name),
+                            );
+                          }).toList(),
+                          onChanged: (_isLoading || _isAddingReturn)
+                              ? null
+                              : (value) {
+                                  setState(() {
+                                    _selectedRestaurantId = value;
+                                  });
+                                },
+                          validator: (value) {
+                            if (value == null) {
+                              return l10n.requiredField;
+                            }
+                            return null;
+                          },
                         ),
-                        items: _restaurants?.map((restaurant) {
-                          return DropdownMenuItem(
-                            value: restaurant.id,
-                            child: Text(restaurant.name),
-                          );
-                        }).toList(),
-                        onChanged: (_isLoading || _isAddingReturn)
-                            ? null
-                            : (value) {
-                                setState(() {
-                                  _selectedRestaurantId = value;
-                                });
-                              },
-                        validator: (value) {
-                          if (value == null) {
-                            return l10n.requiredField;
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
+                      if (widget.restaurantId == null) const SizedBox(height: 16),
                       
                       // Delivery date
                       InkWell(
@@ -312,6 +316,34 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                         enabled: !_isLoading && !_isAddingReturn,
                         readOnly: _isAddingReturn,
                       ),
+                      const SizedBox(height: 16),
+                      
+                      // Jars returned (for new transactions)
+                      if (!_isAddingReturn)
+                        TextFormField(
+                          controller: _jarsReturnedController,
+                          decoration: InputDecoration(
+                            labelText: 'العلب المرتجعة',
+                            hintText: 'عدد البرطمانات المرتجعة (اختياري)',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            filled: true,
+                            prefixIcon: const Icon(Icons.assignment_return),
+                          ),
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                          validator: (value) {
+                            if (value != null && value.isNotEmpty) {
+                              final intValue = int.tryParse(value);
+                              if (intValue == null || intValue < 0) {
+                                return 'يجب أن يكون رقم صحيح';
+                              }
+                            }
+                            return null;
+                          },
+                          enabled: !_isLoading,
+                        ),
                       
                       // Return section (only if adding returns)
                       if (_isAddingReturn) ...[

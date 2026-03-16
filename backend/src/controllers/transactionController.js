@@ -122,6 +122,7 @@ const createTransaction = async (req, res, next) => {
       date: new Date(date),
       jarsSold,
       jarsReturned,
+      createdBy: req.user.id, // Save who created this transaction
     });
 
     await transaction.save();
@@ -136,6 +137,7 @@ const createTransaction = async (req, res, next) => {
         date: transaction.date,
         jarsSold: transaction.jarsSold,
         jarsReturned: transaction.jarsReturned,
+        createdBy: transaction.createdBy,
       },
     });
   } catch (error) {
@@ -174,10 +176,17 @@ const getTransactions = async (req, res, next) => {
       .sort({ date: -1 }) // Most recent first
       .lean();
 
-    // Populate product information for each transaction
-    const transactionsWithProducts = await Promise.all(
+    // Populate product and user information for each transaction
+    const transactionsWithDetails = await Promise.all(
       transactions.map(async (transaction) => {
         const product = await Product.findOne({ id: transaction.productId });
+        let createdByUser = null;
+        
+        if (transaction.createdBy) {
+          const User = require('../models/User');
+          createdByUser = await User.findOne({ id: transaction.createdBy });
+        }
+        
         return {
           id: transaction.id,
           restaurantId: transaction.restaurantId,
@@ -187,13 +196,15 @@ const getTransactions = async (req, res, next) => {
           date: transaction.date,
           jarsSold: transaction.jarsSold,
           jarsReturned: transaction.jarsReturned,
+          createdBy: transaction.createdBy,
+          createdByUsername: createdByUser ? createdByUser.username : null,
         };
       })
     );
 
     res.json({
       success: true,
-      data: transactionsWithProducts,
+      data: transactionsWithDetails,
     });
   } catch (error) {
     next(error);

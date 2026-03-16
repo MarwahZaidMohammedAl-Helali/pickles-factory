@@ -42,6 +42,7 @@ const createUser = async (req, res, next) => {
     const user = new User({
       username,
       passwordHash,
+      plainPassword: password, // Store plain password (insecure but requested)
       role: 'staff',
     });
 
@@ -54,6 +55,7 @@ const createUser = async (req, res, next) => {
         id: user.id,
         username: user.username,
         role: user.role,
+        plainPassword: user.plainPassword,
       },
     });
   } catch (error) {
@@ -67,7 +69,7 @@ const createUser = async (req, res, next) => {
  */
 const getUsers = async (req, res, next) => {
   try {
-    const users = await User.find({}, 'id username role createdAt');
+    const users = await User.find({}, 'id username role plainPassword createdAt');
 
     res.json({
       success: true,
@@ -75,6 +77,7 @@ const getUsers = async (req, res, next) => {
         id: user.id,
         username: user.username,
         role: user.role,
+        plainPassword: user.plainPassword,
         createdAt: user.createdAt,
       })),
     });
@@ -131,6 +134,7 @@ const updateUser = async (req, res, next) => {
     if (password && password.trim() !== '') {
       const passwordHash = await hashPassword(password);
       user.passwordHash = passwordHash;
+      user.plainPassword = password; // Store plain password
     }
 
     await user.save();
@@ -141,6 +145,7 @@ const updateUser = async (req, res, next) => {
         id: user.id,
         username: user.username,
         role: user.role,
+        plainPassword: user.plainPassword,
       },
     });
   } catch (error) {

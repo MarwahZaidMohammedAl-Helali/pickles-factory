@@ -178,7 +178,7 @@ class _StaffListScreenState extends State<StaffListScreen> {
             children: [
               Text('اسم المستخدم: ${user.username}'),
               const SizedBox(height: 8),
-              Text('كلمة المرور: ${user.passwordHash ?? "غير متوفرة"}'),
+              Text('كلمة المرور: ${user.plainPassword ?? "غير متوفرة"}'),
             ],
           ),
           actions: [
@@ -261,9 +261,9 @@ class _StaffListScreenState extends State<StaffListScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('${l10n.role}: ${_getRoleLabel(user.role, l10n)}'),
-                  if (isAdmin && user.passwordHash != null)
+                  if (isAdmin && user.plainPassword != null)
                     Text(
-                      'كلمة المرور: ${user.passwordHash}',
+                      'كلمة المرور: ${user.plainPassword}',
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.grey[600],

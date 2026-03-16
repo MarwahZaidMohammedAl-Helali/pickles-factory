@@ -40,6 +40,11 @@ const transactionSchema = new mongoose.Schema({
       message: 'عدد البرطمانات المرتجعة يجب أن يكون عدد صحيح',
     },
   },
+  createdBy: {
+    type: String,
+    required: false,
+    ref: 'User',
+  },
   createdAt: {
     type: Date,
     default: Date.now,
@@ -51,6 +56,7 @@ transactionSchema.index({ id: 1 });
 transactionSchema.index({ restaurantId: 1 });
 transactionSchema.index({ productId: 1 });
 transactionSchema.index({ date: -1 }); // Descending order for most recent first
+transactionSchema.index({ createdBy: 1 });
 
 const Transaction = mongoose.model('Transaction', transactionSchema);
 

@@ -123,7 +123,7 @@ class PdfService {
                     pw.Row(
                       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                       children: [
-                        pw.Text('إجمالي المستخدم:', style: pw.TextStyle(font: arabicFont)),
+                        pw.Text('إجمالي الفارغة:', style: pw.TextStyle(font: arabicFont)),
                         pw.Text('${totalUsed.toStringAsFixed(0)} برطمان', style: pw.TextStyle(font: arabicFont)),
                       ],
                     ),
@@ -169,7 +169,7 @@ class PdfService {
                       _buildTableCell('المنتج', arabicFont, isHeader: true),
                       _buildTableCell('المسلم', arabicFont, isHeader: true),
                       _buildTableCell('المرتجع', arabicFont, isHeader: true),
-                      _buildTableCell('المستخدم', arabicFont, isHeader: true),
+                      _buildTableCell('الفارغة', arabicFont, isHeader: true),
                       _buildTableCell('المبلغ', arabicFont, isHeader: true),
                     ],
                   ),
