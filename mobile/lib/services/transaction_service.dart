@@ -34,14 +34,23 @@ class TransactionService {
 
   Future<Transaction> updateTransaction({
     required String transactionId,
-    required int jarsReturned,
-    required DateTime returnDate,
+    DateTime? date,
+    int? jarsSold,
+    int? jarsReturned,
   }) async {
-    final response = await _apiService.put('/transactions/$transactionId', {
-      'jarsReturned': jarsReturned,
-      'returnDate': returnDate.toIso8601String(),
-      'isCompleted': true,
-    });
+    final Map<String, dynamic> body = {};
+    
+    if (date != null) {
+      body['date'] = date.toIso8601String();
+    }
+    if (jarsSold != null) {
+      body['jarsSold'] = jarsSold;
+    }
+    if (jarsReturned != null) {
+      body['jarsReturned'] = jarsReturned;
+    }
+    
+    final response = await _apiService.put('/transactions/$transactionId', body);
     final data = response['data'] as Map<String, dynamic>;
     return Transaction.fromJson(data);
   }

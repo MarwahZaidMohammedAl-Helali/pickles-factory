@@ -10,6 +10,7 @@ import '../services/pdf_service.dart';
 import '../utils/formatters.dart';
 import '../widgets/transaction_list_widget.dart';
 import 'add_transaction_screen.dart';
+import 'restaurant_analysis_screen.dart';
 
 class RestaurantDetailScreen extends StatefulWidget {
   final Restaurant restaurant;
@@ -164,6 +165,20 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
           title: Text(widget.restaurant.name),
           actions: [
             IconButton(
+              icon: const Icon(Icons.analytics),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => RestaurantAnalysisScreen(
+                      restaurant: widget.restaurant,
+                    ),
+                  ),
+                );
+              },
+              tooltip: 'التحليلات',
+            ),
+            IconButton(
               icon: _isGeneratingPdf
                   ? const SizedBox(
                       width: 20,
@@ -249,7 +264,7 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '${l10n.totalBalance}: ${Formatters.formatCurrency(_restaurantDetails?.balance ?? 0.0, l10n.currency)}',
+                    'عدد العلب الفارغة: ${(_restaurantDetails?.balance ?? 0.0).abs().toInt()}',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           color: Theme.of(context).colorScheme.primary,
                           fontWeight: FontWeight.bold,

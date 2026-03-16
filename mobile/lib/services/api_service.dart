@@ -3,8 +3,8 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  // Using Railway backend (with all new features deployed)
-  static const String baseUrl = 'https://factory-production-d0af.up.railway.app/api';
+  // Using Render backend
+  static const String baseUrl = 'https://pickles-factory-backend-joqj.onrender.com/api';
   String? _token;
 
   Future<void> setToken(String token) async {

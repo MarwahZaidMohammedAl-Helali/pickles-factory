@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import '../l10n/app_localizations.dart';
 import '../models/transaction.dart';
 import '../models/product.dart';
 import '../services/transaction_service.dart';
-import '../utils/formatters.dart';
-import '../screens/add_transaction_screen.dart';
+import '../providers/auth_provider.dart';
 
 class TransactionListWidget extends StatelessWidget {
   final List<Transaction> transactions;
@@ -22,43 +23,25 @@ class TransactionListWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final authProvider = Provider.of<AuthProvider>(context);
+    final isAdmin = authProvider.isAdmin();
 
     if (transactions.isEmpty) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.receipt_long_outlined,
-                size: 64,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                l10n.noData,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                ),
-              ),
-            ],
-          ),
+          child: Text(l10n.noData),
         ),
       );
     }
 
-    // Sort transactions by date (most recent first)
-    final sortedTransactions = List<Transaction>.from(transactions)
-      ..sort((a, b) => b.deliveryDate.compareTo(a.deliveryDate));
-
     return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      itemCount: sortedTransactions.length,
+      itemCount: transactions.length,
       itemBuilder: (context, index) {
-        final transaction = sortedTransactions[index];
-        return _buildTransactionCard(context, transaction, l10n);
+        final transaction = transactions[index];
+        return _buildTransactionCard(context, transaction, l10n, isAdmin);
       },
     );
   }
@@ -67,258 +50,117 @@ class TransactionListWidget extends StatelessWidget {
     BuildContext context,
     Transaction transaction,
     AppLocalizations l10n,
+    bool isAdmin,
   ) {
-    final product = productMap?[transaction.productId];
     final theme = Theme.of(context);
-    final isCompleted = transaction.isCompleted;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: isCompleted 
-              ? theme.colorScheme.primary.withOpacity(0.3)
-              : Colors.orange.withOpacity(0.3),
-          width: 1,
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: theme.colorScheme.primaryContainer,
+          child: Icon(
+            Icons.receipt,
+            color: theme.colorScheme.onPrimaryContainer,
+          ),
         ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+        title: Text(
+          DateFormat('yyyy-MM-dd').format(transaction.date),
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header with status badge and action buttons
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Row(
-                    children: [
-                      Icon(
-                        isCompleted ? Icons.check_circle : Icons.pending,
-                        color: isCompleted 
-                            ? theme.colorScheme.primary
-                            : Colors.orange,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          Formatters.formatDateArabic(transaction.deliveryDate),
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: isCompleted 
-                            ? theme.colorScheme.primary.withOpacity(0.1)
-                            : Colors.orange.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        isCompleted ? 'مكتمل' : 'قيد الانتظار',
-                        style: TextStyle(
-                          color: isCompleted 
-                              ? theme.colorScheme.primary
-                              : Colors.orange,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // Delete button
-                    IconButton(
-                      icon: const Icon(Icons.delete_outline, size: 20),
-                      color: theme.colorScheme.error,
-                      onPressed: () => _deleteTransaction(context, transaction, l10n),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            
-            const SizedBox(height: 12),
-            
-            // Product info
-            if (product != null)
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceVariant.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.inventory_2_outlined,
-                      size: 20,
-                      color: theme.colorScheme.primary,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        product.name,
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      Formatters.formatCurrency(product.price),
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
+            Text('علب مباعة: ${transaction.jarsSold}'),
+            Text('علب مرتجعة: ${transaction.jarsReturned}'),
+            Text(
+              'الرصيد: ${transaction.jarsSold - transaction.jarsReturned}',
+              style: TextStyle(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.bold,
               ),
-            
-            const SizedBox(height: 12),
-            
-            // Transaction details
-            Row(
-              children: [
-                Expanded(
-                  child: _buildDetailItem(
-                    context,
-                    icon: Icons.local_shipping_outlined,
-                    label: 'المسلم',
-                    value: Formatters.formatNumber(transaction.jarsDelivered),
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildDetailItem(
-                    context,
-                    icon: Icons.assignment_return_outlined,
-                    label: 'المرتجع',
-                    value: Formatters.formatNumber(transaction.jarsReturned),
-                    color: theme.colorScheme.secondary,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildDetailItem(
-                    context,
-                    icon: Icons.shopping_cart_outlined,
-                    label: 'المستخدم',
-                    value: Formatters.formatNumber(transaction.jarsUsed),
-                    color: theme.colorScheme.tertiary,
-                  ),
-                ),
-              ],
             ),
-            
-            // Add return button for incomplete transactions
-            if (!isCompleted) ...[
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () async {
-                    final result = await Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => AddTransactionScreen(
-                          existingTransaction: transaction,
-                        ),
-                      ),
-                    );
-                    
-                    // Auto-refresh after saving returns
-                    if (result == true && onTransactionUpdated != null) {
-                      onTransactionUpdated!();
-                    }
-                  },
-                  icon: const Icon(Icons.add_circle_outline),
-                  label: const Text('إضافة المرتجعات'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: theme.colorScheme.primary,
-                    side: BorderSide(color: theme.colorScheme.primary),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+          ],
+        ),
+        trailing: isAdmin
+            ? PopupMenuButton(
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'edit',
+                    child: Row(
+                      children: [
+                        Icon(Icons.edit),
+                        SizedBox(width: 8),
+                        Text('تعديل التاريخ'),
+                      ],
                     ),
                   ),
-                ),
-              ),
-            ],
-            
-            // Return date if completed
-            if (isCompleted && transaction.returnDate != null) ...[
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Icon(
-                    Icons.event_available,
-                    size: 16,
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'تاريخ الإرجاع: ${Formatters.formatDateArabic(transaction.returnDate!)}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete, color: Colors.red),
+                        SizedBox(width: 8),
+                        Text('حذف', style: TextStyle(color: Colors.red)),
+                      ],
                     ),
                   ),
                 ],
-              ),
-            ],
-          ],
-        ),
+                onSelected: (value) {
+                  if (value == 'edit') {
+                    _editTransactionDate(context, transaction);
+                  } else if (value == 'delete') {
+                    _deleteTransaction(context, transaction, l10n);
+                  }
+                },
+              )
+            : null,
       ),
     );
   }
 
-  Widget _buildDetailItem(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required String value,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, size: 20, color: color),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: color,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
+  Future<void> _editTransactionDate(
+    BuildContext context,
+    Transaction transaction,
+  ) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: transaction.date,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Directionality(
+          textDirection: TextDirection.rtl,
+          child: child!,
+        );
+      },
     );
+
+    if (picked != null && picked != transaction.date) {
+      try {
+        await _transactionService.initialize();
+        await _transactionService.updateTransaction(
+          transactionId: transaction.id,
+          date: picked,
+        );
+
+        if (onTransactionUpdated != null) {
+          onTransactionUpdated!();
+        }
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('تم تحديث التاريخ بنجاح')),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('خطأ في التحديث: $e')),
+          );
+        }
+      }
+    }
   }
 
   Future<void> _deleteTransaction(
@@ -336,11 +178,11 @@ class TransactionListWidget extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: Text(l10n.no),
+              child: const Text('إلغاء'),
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: Text(l10n.yes),
+              child: const Text('حذف'),
             ),
           ],
         ),
@@ -351,11 +193,11 @@ class TransactionListWidget extends StatelessWidget {
       try {
         await _transactionService.initialize();
         await _transactionService.deleteTransaction(transaction.id);
-        
+
         if (onTransactionUpdated != null) {
           onTransactionUpdated!();
         }
-        
+
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('تم حذف المعاملة بنجاح')),
@@ -371,3 +213,4 @@ class TransactionListWidget extends StatelessWidget {
     }
   }
 }
+

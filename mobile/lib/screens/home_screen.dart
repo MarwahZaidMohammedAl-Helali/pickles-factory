@@ -3,9 +3,7 @@ import 'package:provider/provider.dart';
 import '../l10n/app_localizations.dart';
 import '../providers/auth_provider.dart';
 import 'restaurant_list_screen.dart';
-import 'product_list_screen.dart';
 import 'staff_list_screen.dart';
-import 'analytics_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -24,31 +22,20 @@ class _HomeScreenState extends State<HomeScreen> {
     final isAdmin = authProvider.isAdmin();
 
     final List<Widget> screens = [
-      const RestaurantListScreen(),
-      const ProductListScreen(),
-      if (isAdmin) const AnalyticsScreen(),
       if (isAdmin) const StaffListScreen(),
+      const RestaurantListScreen(),
     ];
 
     final List<BottomNavigationBarItem> navItems = [
-      BottomNavigationBarItem(
-        icon: const Icon(Icons.restaurant),
-        label: l10n.restaurants,
-      ),
-      BottomNavigationBarItem(
-        icon: const Icon(Icons.inventory),
-        label: l10n.products,
-      ),
-      if (isAdmin)
-        const BottomNavigationBarItem(
-          icon: Icon(Icons.analytics),
-          label: 'التحليلات',
-        ),
       if (isAdmin)
         BottomNavigationBarItem(
           icon: const Icon(Icons.people),
           label: l10n.staff,
         ),
+      BottomNavigationBarItem(
+        icon: const Icon(Icons.restaurant),
+        label: l10n.restaurants,
+      ),
     ];
 
     return Directionality(

@@ -343,7 +343,7 @@ class _RestaurantListScreenState extends State<RestaurantListScreen> {
               ),
               subtitle: restaurant.balance != null
                   ? Text(
-                      '${l10n.balance}: ${Formatters.formatCurrency(restaurant.balance!, l10n.currency)}',
+                      'عدد العلب الفارغة: ${restaurant.balance!.abs().toInt()}',
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.primary,
                         fontWeight: FontWeight.w600,
