@@ -154,7 +154,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         await _transactionService.updateTransaction(
           transactionId: widget.existingTransaction!.id,
           jarsReturned: int.parse(_jarsReturnedController.text),
-          returnDate: _returnDate ?? DateTime.now(),
         );
       } else {
         // Create new delivery transaction

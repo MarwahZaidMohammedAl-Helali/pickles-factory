@@ -74,12 +74,6 @@ class _RestaurantAnalysisScreenState extends State<RestaurantAnalysisScreen> {
       initialDate: _startDate ?? DateTime.now(),
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
-      builder: (context, child) {
-        return Directionality(
-          textDirection: TextDirection.rtl,
-          child: child!,
-        );
-      },
     );
 
     if (picked != null) {
@@ -96,12 +90,6 @@ class _RestaurantAnalysisScreenState extends State<RestaurantAnalysisScreen> {
       initialDate: _endDate ?? DateTime.now(),
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
-      builder: (context, child) {
-        return Directionality(
-          textDirection: TextDirection.rtl,
-          child: child!,
-        );
-      },
     );
 
     if (picked != null) {
@@ -132,14 +120,11 @@ class _RestaurantAnalysisScreenState extends State<RestaurantAnalysisScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text('تحليلات ${widget.restaurant.name}'),
-        ),
-        body: _buildBody(),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('تحليلات ${widget.restaurant.name}'),
       ),
+      body: _buildBody(),
     );
   }
 
