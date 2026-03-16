@@ -78,6 +78,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
       final restaurants = await _restaurantService.getRestaurants();
       final products = await _productService.getProducts();
+      
+      // Auto-select first product if available (since we only have one product)
+      if (products.isNotEmpty && _selectedProductId == null) {
+        _selectedProductId = products.first.id;
+      }
 
       setState(() {
         _restaurants = restaurants;
@@ -257,41 +262,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                       ),
                       const SizedBox(height: 16),
                       
-                      // Product selector
-                      DropdownButtonFormField<String>(
-                        value: _selectedProductId,
-                        decoration: InputDecoration(
-                          labelText: l10n.selectProduct,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          filled: true,
-                          prefixIcon: const Icon(Icons.inventory_2),
-                        ),
-                        items: _products?.map((product) {
-                          return DropdownMenuItem(
-                            value: product.id,
-                            child: Text(
-                              '${product.name} - ${Formatters.formatCurrency(product.price)}',
-                            ),
-                          );
-                        }).toList(),
-                        onChanged: (_isLoading || _isAddingReturn)
-                            ? null
-                            : (value) {
-                                setState(() {
-                                  _selectedProductId = value;
-                                });
-                              },
-                        validator: (value) {
-                          if (value == null) {
-                            return l10n.requiredField;
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      
                       // Delivery date
                       InkWell(
                         onTap: (_isLoading || _isAddingReturn) ? null : () => _selectDeliveryDate(context),
@@ -334,8 +304,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                             return l10n.requiredField;
                           }
                           final intValue = int.tryParse(value);
-                          if (intValue == null || intValue <= 0) {
-                            return l10n.mustBePositive;
+                          if (intValue == null || intValue < 0) {
+                            return 'يجب أن يكون رقم صحيح';
                           }
                           return null;
                         },
@@ -458,7 +428,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                      'المستخدم:',
+                                      'الفاضية:',
                                       style: theme.textTheme.titleLarge?.copyWith(
                                         color: theme.colorScheme.primary,
                                         fontWeight: FontWeight.bold,
