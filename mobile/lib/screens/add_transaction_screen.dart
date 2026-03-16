@@ -80,8 +80,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       final products = await _productService.getProducts();
       
       // Auto-select first product if available (since we only have one product)
-      if (products.isNotEmpty && _selectedProductId == null) {
+      if (products.isNotEmpty) {
         _selectedProductId = products.first.id;
+        print('Auto-selected product: ${products.first.id}');
+      } else {
+        print('No products found!');
       }
 
       setState(() {
@@ -146,7 +149,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     
     if (_selectedProductId == null) {
       setState(() {
-        _errorMessage = 'خطأ: لم يتم تحديد المنتج';
+        _errorMessage = 'خطأ: لا يوجد منتجات في النظام. يرجى إضافة منتج أولاً من قائمة المنتجات.';
       });
       return;
     }

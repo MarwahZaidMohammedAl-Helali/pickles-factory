@@ -233,53 +233,103 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Restaurant Photo (if available)
-          if (_restaurantDetails?.photoUrl != null)
-            Container(
-              height: 200,
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                image: DecorationImage(
-                  image: NetworkImage(_restaurantDetails!.photoUrl!),
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-
+          // Restaurant Header with Photo
           Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l10n.restaurantDetails,
-                    style: Theme.of(context).textTheme.titleLarge,
+            elevation: 4,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              children: [
+                // Restaurant Photo
+                if (_restaurantDetails?.photoUrl != null && _restaurantDetails!.photoUrl!.isNotEmpty)
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                    child: Image.network(
+                      _restaurantDetails!.photoUrl!,
+                      height: 200,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          height: 200,
+                          color: theme.colorScheme.primaryContainer,
+                          child: Icon(
+                            Icons.restaurant,
+                            size: 80,
+                            color: theme.colorScheme.onPrimaryContainer,
+                          ),
+                        );
+                      },
+                    ),
+                  )
+                else
+                  Container(
+                    height: 200,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primaryContainer,
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                    ),
+                    child: Center(
+                      child: Icon(
+                        Icons.restaurant,
+                        size: 80,
+                        color: theme.colorScheme.onPrimaryContainer,
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '${l10n.restaurantName}: ${widget.restaurant.name}',
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'عدد العلب الفارغة: ${(_restaurantDetails?.balance ?? 0.0).abs().toInt()}',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.primary,
+                
+                // Restaurant Info
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.restaurant.name,
+                        style: theme.textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.secondaryContainer,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'عدد العلب الفارغة:',
+                              style: theme.textTheme.titleMedium,
+                            ),
+                            Text(
+                              '${(_restaurantDetails?.balance ?? 0.0).abs().toInt()}',
+                              style: theme.textTheme.titleLarge?.copyWith(
+                                color: theme.colorScheme.primary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 16),
+
+          const SizedBox(height: 24),
           Text(
             l10n.transactionsList,
-            style: Theme.of(context).textTheme.titleLarge,
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           if (_transactions != null)
             TransactionListWidget(
               transactions: _transactions!,
