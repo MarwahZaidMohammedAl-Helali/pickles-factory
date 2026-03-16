@@ -143,6 +143,13 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       });
       return;
     }
+    
+    if (_selectedProductId == null) {
+      setState(() {
+        _errorMessage = 'خطأ: لم يتم تحديد المنتج';
+      });
+      return;
+    }
 
     // Prevent duplicate saves
     if (_isLoading) {
