@@ -1,0 +1,14 @@
+node_modules/
+backend/node_modules/
+mobile/node_modules/
+mobile_temp/
+.dart_tool/
+build/
+coverage/
+*.log
+.env
+.DS_Store
+backend/coverage/
+mobile/.dart_tool/
+mobile/build/
+mobile_temp/

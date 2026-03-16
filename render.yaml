@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: pickles-factory-backend
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: CREATE_ADMIN_ON_START
+        value: true
+      - key: MONGODB_URI
+        fromDatabase:
+          name: pickles-factory-db
+          property: connectionString
+
+databases:
+  - name: pickles-factory-db
+    databaseName: pickles_factory
+    plan: free

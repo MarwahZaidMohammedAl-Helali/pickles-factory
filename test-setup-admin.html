@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create Admin User</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            text-align: center;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            cursor: pointer;
+            margin: 20px 0;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Create Admin User</h1>
+    <p>Click the button to create the admin user on Railway</p>
+    
+    <button onclick="createAdmin()">Create Admin User</button>
+    
+    <div id="result" class="result"></div>
+
+    <script>
+        async function createAdmin() {
+            const result = document.getElementById('result');
+            result.style.display = 'block';
+            result.className = 'result';
+            result.textContent = 'Creating admin user...';
+            
+            try {
+                const response = await fetch('https://factory-production-d0af.up.railway.app/setup-admin', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    result.className = 'result success';
+                    result.innerHTML = `
+                        <h2>✅ Success!</h2>
+                        <p>${data.message}</p>
+                        <p><strong>Username:</strong> admin</p>
+                        <p><strong>Password:</strong> admin123</p>
+                        <p style="margin-top: 20px;">Now try logging into your mobile app!</p>
+                    `;
+                } else {
+                    throw new Error(data.error || 'Unknown error');
+                }
+            } catch (error) {
+                result.className = 'result error';
+                result.innerHTML = `
+                    <h2>❌ Error</h2>
+                    <p>${error.message}</p>
+                    <p style="margin-top: 15px; font-size: 14px;">
+                        The /setup-admin endpoint doesn't exist yet.<br>
+                        The updated backend code needs to be deployed to Railway first.
+                    </p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

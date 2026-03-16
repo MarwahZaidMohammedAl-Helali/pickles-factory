@@ -1,0 +1,19 @@
+node_modules/
+.env
+*.log
+.DS_Store
+coverage/
+
+# Backend
+backend/node_modules/
+backend/.env
+backend/coverage/
+
+# Mobile
+mobile/.dart_tool/
+mobile/build/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+
+# Mobile temp
+mobile_temp/
