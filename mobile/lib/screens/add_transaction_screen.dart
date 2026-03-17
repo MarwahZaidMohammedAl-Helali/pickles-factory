@@ -74,22 +74,14 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
     try {
       await _restaurantService.initialize();
-      await _productService.initialize();
 
       final restaurants = await _restaurantService.getRestaurants();
-      final products = await _productService.getProducts();
       
-      // Auto-select first product if available (since we only have one product)
-      if (products.isNotEmpty) {
-        _selectedProductId = products.first.id;
-        print('Auto-selected product: ${products.first.id}');
-      } else {
-        print('No products found!');
-      }
+      // We don't need products anymore - just use a default/dummy product ID
+      _selectedProductId = 'default-product';
 
       setState(() {
         _restaurants = restaurants;
-        _products = products;
         _isLoadingData = false;
       });
     } catch (e) {
@@ -148,10 +140,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     }
     
     if (_selectedProductId == null) {
-      setState(() {
-        _errorMessage = 'خطأ: لا يوجد منتجات في النظام. يرجى إضافة منتج أولاً من قائمة المنتجات.';
-      });
-      return;
+      _selectedProductId = 'default-product'; // Use default product
     }
 
     // Prevent duplicate saves
@@ -174,13 +163,13 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           jarsReturned: int.parse(_jarsReturnedController.text),
         );
       } else {
-        // Create new delivery transaction
+        // Create new delivery transaction (without returns initially)
         await _transactionService.addTransaction(
           restaurantId: restaurantId,
           productId: _selectedProductId!,
           date: _deliveryDate,
           jarsSold: int.parse(_jarsDeliveredController.text),
-          jarsReturned: int.parse(_jarsReturnedController.text.isEmpty ? '0' : _jarsReturnedController.text),
+          jarsReturned: 0, // Always 0 for new transactions
         );
       }
 
@@ -328,13 +317,13 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                       ),
                       const SizedBox(height: 16),
                       
-                      // Jars returned (for new transactions)
-                      if (!_isAddingReturn)
+                      // Jars returned (only show when adding returns to existing transaction)
+                      if (_isAddingReturn)
                         TextFormField(
                           controller: _jarsReturnedController,
                           decoration: InputDecoration(
                             labelText: 'العلب المرتجعة',
-                            hintText: 'عدد البرطمانات المرتجعة (اختياري)',
+                            hintText: 'عدد البرطمانات المرتجعة',
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -344,11 +333,16 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                           keyboardType: TextInputType.number,
                           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                           validator: (value) {
-                            if (value != null && value.isNotEmpty) {
-                              final intValue = int.tryParse(value);
-                              if (intValue == null || intValue < 0) {
-                                return 'يجب أن يكون رقم صحيح';
-                              }
+                            if (value == null || value.isEmpty) {
+                              return l10n.requiredField;
+                            }
+                            final intValue = int.tryParse(value);
+                            if (intValue == null || intValue < 0) {
+                              return 'يجب أن يكون رقم صحيح';
+                            }
+                            final delivered = int.tryParse(_jarsDeliveredController.text) ?? 0;
+                            if (intValue > delivered) {
+                              return 'لا يمكن أن يكون المرتجع أكثر من المسلم';
                             }
                             return null;
                           },
