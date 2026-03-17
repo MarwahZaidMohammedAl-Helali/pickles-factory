@@ -1,11 +1,11 @@
 /**
  * Calculate the total balance for a restaurant based on its transactions
  * 
- * Balance formula: sum of (jarsSold - jarsReturned) for all transactions
- * This represents the total number of empty boxes (علب فارغة) that the restaurant owes
+ * Balance formula: sum of jarsReturned for all transactions
+ * This represents the total number of empty boxes (علب فارغة) returned by the restaurant
  * 
  * @param {Array} transactions - Array of transaction objects with jarsSold and jarsReturned
- * @returns {Number} - Total number of empty boxes owed by the restaurant
+ * @returns {Number} - Total number of empty boxes returned by the restaurant
  */
 const calculateBalance = (transactions) => {
   if (!transactions || !Array.isArray(transactions)) {
@@ -13,8 +13,7 @@ const calculateBalance = (transactions) => {
   }
 
   return transactions.reduce((totalBalance, transaction) => {
-    const netJars = transaction.jarsSold - transaction.jarsReturned;
-    return totalBalance + netJars;
+    return totalBalance + transaction.jarsReturned;
   }, 0);
 };
 

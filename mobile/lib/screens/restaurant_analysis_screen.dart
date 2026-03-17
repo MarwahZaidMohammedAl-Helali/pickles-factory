@@ -19,6 +19,7 @@ class RestaurantAnalysisScreen extends StatefulWidget {
 class _RestaurantAnalysisScreenState extends State<RestaurantAnalysisScreen> {
   final TransactionService _transactionService = TransactionService();
   final TextEditingController _searchController = TextEditingController();
+  final Set<String> _expandedNotes = <String>{};
   
   List<Transaction>? _allTransactions;
   bool _isLoading = true;
@@ -96,7 +97,7 @@ class _RestaurantAnalysisScreenState extends State<RestaurantAnalysisScreen> {
     
     int balance = 0;
     for (var transaction in filtered) {
-      balance += transaction.jarsDelivered - transaction.jarsEmpty;
+      balance += transaction.jarsEmpty; // Sum of returned jars only
     }
     return balance;
   }
@@ -401,15 +402,15 @@ class _RestaurantAnalysisScreenState extends State<RestaurantAnalysisScreen> {
 
   Widget _buildTableHeader(ThemeData theme) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
       decoration: BoxDecoration(
         color: theme.colorScheme.primaryContainer,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
       ),
       child: Row(
         children: [
-          Expanded(
-            flex: 2,
+          SizedBox(
+            width: 90,
             child: Text(
               'التاريخ',
               style: theme.textTheme.labelMedium?.copyWith(
@@ -418,8 +419,8 @@ class _RestaurantAnalysisScreenState extends State<RestaurantAnalysisScreen> {
               ),
             ),
           ),
-          Expanded(
-            flex: 1,
+          SizedBox(
+            width: 50,
             child: Text(
               'المسلم',
               textAlign: TextAlign.center,
@@ -429,8 +430,8 @@ class _RestaurantAnalysisScreenState extends State<RestaurantAnalysisScreen> {
               ),
             ),
           ),
-          Expanded(
-            flex: 1,
+          SizedBox(
+            width: 50,
             child: Text(
               'المرتجع',
               textAlign: TextAlign.center,
@@ -441,16 +442,18 @@ class _RestaurantAnalysisScreenState extends State<RestaurantAnalysisScreen> {
             ),
           ),
           Expanded(
-            flex: 2,
-            child: Text(
-              'ملاحظات',
-              style: theme.textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.onPrimaryContainer,
+            child: Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: Text(
+                'ملاحظات',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.onPrimaryContainer,
+                ),
               ),
             ),
           ),
-          const SizedBox(width: 40), // Space for menu button
+          const SizedBox(width: 64), // Space for edit and delete buttons
         ],
       ),
     );
@@ -462,7 +465,7 @@ class _RestaurantAnalysisScreenState extends State<RestaurantAnalysisScreen> {
     ThemeData theme,
     bool isAdmin,
   ) {
-    final isPending = transaction.jarsEmpty == 0;
+    final isExpanded = _expandedNotes.contains(transaction.id);
     
     return Container(
       decoration: BoxDecoration(
@@ -472,131 +475,124 @@ class _RestaurantAnalysisScreenState extends State<RestaurantAnalysisScreen> {
             width: 1,
           ),
         ),
-        color: isPending 
-            ? theme.colorScheme.errorContainer.withOpacity(0.1)
-            : null,
       ),
-      child: InkWell(
-        onTap: isAdmin ? () => _editTransaction(context, transaction) : null,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Date
-              Expanded(
-                flex: 2,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Date
+            SizedBox(
+              width: 90,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    DateFormat('yyyy-MM-dd').format(transaction.deliveryDate),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 10,
+                    ),
+                  ),
+                  if (transaction.createdByUsername != null)
                     Text(
-                      DateFormat('yyyy-MM-dd').format(transaction.deliveryDate),
+                      transaction.createdByUsername!,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w500,
+                        color: theme.colorScheme.secondary,
+                        fontSize: 9,
                       ),
                     ),
-                    if (transaction.createdByUsername != null)
-                      Text(
-                        transaction.createdByUsername!,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.secondary,
-                          fontSize: 10,
-                        ),
-                      ),
-                  ],
+                ],
+              ),
+            ),
+            
+            // Delivered
+            SizedBox(
+              width: 50,
+              child: Text(
+                '${transaction.jarsDelivered}',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.primary,
+                  fontSize: 14,
                 ),
               ),
-              
-              // Delivered
-              Expanded(
-                flex: 1,
-                child: Text(
-                  '${transaction.jarsDelivered}',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.primary,
-                  ),
+            ),
+            
+            // Returned
+            SizedBox(
+              width: 50,
+              child: Text(
+                '${transaction.jarsEmpty}',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.primary,
+                  fontSize: 14,
                 ),
               ),
-              
-              // Returned
-              Expanded(
-                flex: 1,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: isPending 
-                        ? theme.colorScheme.errorContainer.withOpacity(0.3)
-                        : theme.colorScheme.primaryContainer.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    isPending ? '-' : '${transaction.jarsEmpty}',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: isPending 
-                          ? theme.colorScheme.error
-                          : theme.colorScheme.primary,
-                    ),
-                  ),
-                ),
-              ),
-              
-              // Notes
-              Expanded(
-                flex: 2,
-                child: Text(
-                  transaction.notes ?? '-',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.secondary,
-                    fontSize: 11,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              
-              // Menu button
-              if (isAdmin)
-                PopupMenuButton(
-                  padding: EdgeInsets.zero,
-                  iconSize: 20,
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'edit',
-                      child: Row(
-                        children: [
-                          Icon(Icons.edit, size: 18),
-                          SizedBox(width: 8),
-                          Text('تعديل'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete, size: 18, color: Colors.red),
-                          SizedBox(width: 8),
-                          Text('حذف', style: TextStyle(color: Colors.red)),
-                        ],
-                      ),
-                    ),
-                  ],
-                  onSelected: (value) {
-                    if (value == 'edit') {
-                      _editTransaction(context, transaction);
-                    } else if (value == 'delete') {
-                      _deleteTransaction(context, transaction);
+            ),
+            
+            // Notes
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 8, right: 8),
+                child: GestureDetector(
+                  onTap: () {
+                    if (transaction.notes != null && transaction.notes!.isNotEmpty) {
+                      setState(() {
+                        if (isExpanded) {
+                          _expandedNotes.remove(transaction.id);
+                        } else {
+                          _expandedNotes.add(transaction.id);
+                        }
+                      });
                     }
                   },
-                )
-              else
-                const SizedBox(width: 40),
-            ],
-          ),
+                  child: Text(
+                    transaction.notes ?? '-',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.secondary,
+                      fontSize: 11,
+                    ),
+                    maxLines: isExpanded ? null : 2,
+                    overflow: isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+            ),
+            
+            // Edit and Delete buttons
+            if (isAdmin)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    iconSize: 18,
+                    onPressed: () => _editTransaction(context, transaction),
+                    icon: Icon(
+                      Icons.edit,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                  IconButton(
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    iconSize: 18,
+                    onPressed: () => _deleteTransaction(context, transaction),
+                    icon: Icon(
+                      Icons.delete,
+                      color: theme.colorScheme.error,
+                    ),
+                  ),
+                ],
+              )
+            else
+              const SizedBox(width: 64),
+          ],
         ),
       ),
     );

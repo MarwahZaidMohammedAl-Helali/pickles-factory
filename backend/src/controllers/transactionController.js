@@ -9,9 +9,6 @@ const Product = require('../models/Product');
 const createTransaction = async (req, res, next) => {
   try {
     const { restaurantId, productId, date, jarsSold, jarsReturned, notes } = req.body;
-    
-    console.log('DEBUG createTransaction: req.body =', req.body);
-    console.log('DEBUG createTransaction: notes =', notes);
 
     // Validate all required fields are provided
     if (!restaurantId) {
@@ -111,9 +108,7 @@ const createTransaction = async (req, res, next) => {
       createdBy: req.user.id, // Save who created this transaction
     });
 
-    console.log('DEBUG createTransaction: transaction before save =', transaction);
     await transaction.save();
-    console.log('DEBUG createTransaction: transaction after save =', transaction);
 
     // Return success response
     res.status(201).json({
@@ -202,9 +197,6 @@ const getTransactions = async (req, res, next) => {
       })
     );
 
-    console.log('DEBUG getTransactions: returning', transactionsWithDetails.length, 'transactions');
-    console.log('DEBUG getTransactions: first transaction notes =', transactionsWithDetails[0]?.notes);
-
     res.json({
       success: true,
       data: transactionsWithDetails,
@@ -222,9 +214,6 @@ const updateTransaction = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { date, jarsSold, jarsReturned, returnDate, notes } = req.body;
-    
-    console.log('DEBUG updateTransaction: req.body =', req.body);
-    console.log('DEBUG updateTransaction: notes =', notes);
 
     // Find transaction
     const transaction = await Transaction.findOne({ id });
@@ -278,7 +267,6 @@ const updateTransaction = async (req, res, next) => {
     }
 
     if (notes !== undefined) {
-      console.log('DEBUG updateTransaction: setting notes to:', notes);
       transaction.notes = notes || null;
     }
 
@@ -286,9 +274,7 @@ const updateTransaction = async (req, res, next) => {
     transaction.updatedBy = req.user.id;
     transaction.updatedAt = new Date();
 
-    console.log('DEBUG updateTransaction: transaction before save =', transaction);
     await transaction.save();
-    console.log('DEBUG updateTransaction: transaction after save =', transaction);
 
     res.json({
       success: true,

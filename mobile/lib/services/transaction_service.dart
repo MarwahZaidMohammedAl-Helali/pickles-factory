@@ -22,7 +22,6 @@ class TransactionService {
     required int jarsReturned,
     String? notes,
   }) async {
-    print('DEBUG TransactionService.addTransaction: notes = $notes');
     final body = {
       'restaurantId': restaurantId,
       'productId': productId,
@@ -31,11 +30,9 @@ class TransactionService {
       'jarsReturned': jarsReturned,
       if (notes != null) 'notes': notes,
     };
-    print('DEBUG TransactionService.addTransaction: body = $body');
     
     final response = await _apiService.post('/transactions', body);
     final data = response['data'] as Map<String, dynamic>;
-    print('DEBUG TransactionService.addTransaction: response data = $data');
     return Transaction.fromJson(data);
   }
 
@@ -65,12 +62,8 @@ class TransactionService {
       body['notes'] = notes;
     }
     
-    print('DEBUG TransactionService.updateTransaction: notes = $notes');
-    print('DEBUG TransactionService.updateTransaction: body = $body');
-    
     final response = await _apiService.put('/transactions/$transactionId', body);
     final data = response['data'] as Map<String, dynamic>;
-    print('DEBUG TransactionService.updateTransaction: response data = $data');
     return Transaction.fromJson(data);
   }
 

@@ -162,7 +162,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       await _transactionService.initialize();
       
       final notesValue = _notesController.text.isEmpty ? null : _notesController.text;
-      print('DEBUG: Saving transaction with notes: $notesValue');
       
       if (_isEditingTransaction) {
         // Update existing transaction with all fields

@@ -41,8 +41,6 @@ class Transaction {
   DateTime get date => deliveryDate;
 
   factory Transaction.fromJson(Map<String, dynamic> json) {
-    print('DEBUG Transaction.fromJson: json = $json');
-    
     final deliveryDate = json['deliveryDate'] != null 
         ? DateTime.parse(json['deliveryDate'] as String)
         : DateTime.parse(json['date'] as String); // Fallback to old field
@@ -54,8 +52,6 @@ class Transaction {
     final jarsDelivered = (json['jarsDelivered'] ?? json['jarsSold'] ?? 0) as int;
     final jarsEmpty = (json['jarsEmpty'] ?? json['jarsReturned'] ?? 0) as int;
     final notes = json['notes'] as String?;
-    
-    print('DEBUG Transaction.fromJson: notes = $notes');
 
     return Transaction(
       id: json['id'] as String,
