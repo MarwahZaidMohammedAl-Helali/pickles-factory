@@ -6,6 +6,7 @@ import '../models/transaction.dart';
 import '../models/product.dart';
 import '../services/transaction_service.dart';
 import '../providers/auth_provider.dart';
+import '../screens/add_transaction_screen.dart';
 
 class TransactionListWidget extends StatelessWidget {
   final List<Transaction> transactions;
@@ -71,20 +72,40 @@ class TransactionListWidget extends StatelessWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('علب مباعة: ${transaction.jarsSold}'),
-            Text('علب مرتجعة: ${transaction.jarsReturned}'),
-            Text(
-              'الرصيد: ${transaction.jarsSold - transaction.jarsReturned}',
-              style: TextStyle(
-                color: theme.colorScheme.primary,
-                fontWeight: FontWeight.bold,
+            Text('علب مسلمة: ${transaction.jarsSold}'),
+            if (transaction.jarsReturned > 0) ...[
+              Text('علب مرتجعة: ${transaction.jarsReturned}'),
+              Text(
+                'عدد العلب الفارغة: ${transaction.jarsSold - transaction.jarsReturned}',
+                style: TextStyle(
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
+            ] else
+              Text(
+                'بانتظار المرتجعات...',
+                style: TextStyle(
+                  color: theme.colorScheme.secondary,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
           ],
         ),
         trailing: isAdmin
             ? PopupMenuButton(
                 itemBuilder: (context) => [
+                  if (transaction.jarsReturned == 0)
+                    const PopupMenuItem(
+                      value: 'add_returns',
+                      child: Row(
+                        children: [
+                          Icon(Icons.add),
+                          SizedBox(width: 8),
+                          Text('إضافة المرتجعات'),
+                        ],
+                      ),
+                    ),
                   const PopupMenuItem(
                     value: 'edit',
                     child: Row(
@@ -107,7 +128,9 @@ class TransactionListWidget extends StatelessWidget {
                   ),
                 ],
                 onSelected: (value) {
-                  if (value == 'edit') {
+                  if (value == 'add_returns') {
+                    _addReturnsToTransaction(context, transaction);
+                  } else if (value == 'edit') {
                     _editTransactionDate(context, transaction);
                   } else if (value == 'delete') {
                     _deleteTransaction(context, transaction, l10n);
@@ -154,6 +177,24 @@ class TransactionListWidget extends StatelessWidget {
           );
         }
       }
+    }
+  }
+
+  Future<void> _addReturnsToTransaction(
+    BuildContext context,
+    Transaction transaction,
+  ) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddTransactionScreen(
+          existingTransaction: transaction,
+        ),
+      ),
+    );
+
+    if (result == true && onTransactionUpdated != null) {
+      onTransactionUpdated!();
     }
   }
 

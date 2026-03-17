@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
@@ -326,9 +327,13 @@ class _RestaurantListScreenState extends State<RestaurantListScreen> {
                 radius: 28,
                 backgroundColor: Theme.of(context).colorScheme.primaryContainer,
                 backgroundImage: restaurant.photoUrl != null && restaurant.photoUrl!.isNotEmpty
-                    ? (restaurant.photoUrl!.startsWith('http')
-                        ? NetworkImage(restaurant.photoUrl!) as ImageProvider
-                        : FileImage(File(restaurant.photoUrl!)))
+                    ? (restaurant.photoUrl!.startsWith('data:image')
+                        ? MemoryImage(
+                            base64Decode(restaurant.photoUrl!.split(',')[1]),
+                          )
+                        : (restaurant.photoUrl!.startsWith('http')
+                            ? NetworkImage(restaurant.photoUrl!) as ImageProvider
+                            : FileImage(File(restaurant.photoUrl!)) as ImageProvider)) as ImageProvider
                     : null,
                 child: restaurant.photoUrl == null || restaurant.photoUrl!.isEmpty
                     ? Icon(
