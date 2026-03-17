@@ -60,34 +60,50 @@ class _StaffListScreenState extends State<StaffListScreen> {
   Future<void> _editStaff(User user) async {
     final usernameController = TextEditingController(text: user.username);
     final passwordController = TextEditingController();
+    final currentPasswordController = TextEditingController();
+    bool isEditingAdmin = user.role == 'admin';
     
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => Directionality(
         textDirection: TextDirection.rtl,
         child: AlertDialog(
-          title: const Text('تعديل الموظف'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: usernameController,
-                decoration: const InputDecoration(
-                  labelText: 'اسم المستخدم',
-                  border: OutlineInputBorder(),
+          title: Text(isEditingAdmin ? 'تعديل حسابك' : 'تعديل الموظف'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: usernameController,
+                  decoration: const InputDecoration(
+                    labelText: 'اسم المستخدم',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: passwordController,
-                decoration: const InputDecoration(
-                  labelText: 'كلمة المرور الجديدة (اختياري)',
-                  border: OutlineInputBorder(),
-                  hintText: 'اتركه فارغاً للإبقاء على كلمة المرور الحالية',
+                const SizedBox(height: 16),
+                TextField(
+                  controller: passwordController,
+                  decoration: const InputDecoration(
+                    labelText: 'كلمة المرور الجديدة (اختياري)',
+                    border: OutlineInputBorder(),
+                    hintText: 'اتركه فارغاً للإبقاء على كلمة المرور الحالية',
+                  ),
+                  obscureText: true,
                 ),
-                obscureText: true,
-              ),
-            ],
+                if (isEditingAdmin) ...[
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: currentPasswordController,
+                    decoration: const InputDecoration(
+                      labelText: 'كلمة المرور الحالية (للتأكيد)',
+                      border: OutlineInputBorder(),
+                      hintText: 'أدخل كلمة المرور الحالية للتأكيد',
+                    ),
+                    obscureText: true,
+                  ),
+                ],
+              ],
+            ),
           ),
           actions: [
             TextButton(
@@ -110,11 +126,14 @@ class _StaffListScreenState extends State<StaffListScreen> {
           user.id,
           username: usernameController.text,
           password: passwordController.text.isNotEmpty ? passwordController.text : null,
+          currentPassword: isEditingAdmin && currentPasswordController.text.isNotEmpty 
+              ? currentPasswordController.text 
+              : null,
         );
         
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('تم تحديث الموظف بنجاح')),
+            const SnackBar(content: Text('تم تحديث البيانات بنجاح')),
           );
           _loadStaff();
         }
@@ -261,12 +280,13 @@ class _StaffListScreenState extends State<StaffListScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('${l10n.role}: ${_getRoleLabel(user.role, l10n)}'),
-                  if (isAdmin && user.plainPassword != null)
+                  if (isAdmin && user.role != 'admin' && user.plainPassword == null)
                     Text(
-                      'كلمة المرور: ${user.plainPassword}',
+                      'كلمة المرور: لم يتم تعيينها',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey[600],
+                        color: Colors.orange[700],
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                 ],
@@ -276,7 +296,7 @@ class _StaffListScreenState extends State<StaffListScreen> {
                   user.role == 'admin' ? Icons.admin_panel_settings : Icons.person,
                 ),
               ),
-              trailing: isAdmin && user.role != 'admin'
+              trailing: isAdmin
                   ? Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -285,16 +305,18 @@ class _StaffListScreenState extends State<StaffListScreen> {
                           onPressed: () => _editStaff(user),
                           tooltip: 'تعديل',
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.visibility),
-                          onPressed: () => _showPasswordDialog(user, l10n),
-                          tooltip: 'عرض كلمة المرور',
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete),
-                          onPressed: () => _deleteStaff(user, l10n),
-                          tooltip: 'حذف',
-                        ),
+                        if (user.role != 'admin')
+                          IconButton(
+                            icon: const Icon(Icons.visibility),
+                            onPressed: () => _showPasswordDialog(user, l10n),
+                            tooltip: 'عرض كلمة المرور',
+                          ),
+                        if (user.role != 'admin')
+                          IconButton(
+                            icon: const Icon(Icons.delete),
+                            onPressed: () => _deleteStaff(user, l10n),
+                            tooltip: 'حذف',
+                          ),
                       ],
                     )
                   : null,

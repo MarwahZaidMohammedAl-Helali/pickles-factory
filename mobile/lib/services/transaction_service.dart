@@ -20,15 +20,22 @@ class TransactionService {
     required DateTime date,
     required int jarsSold,
     required int jarsReturned,
+    String? notes,
   }) async {
-    final response = await _apiService.post('/transactions', {
+    print('DEBUG TransactionService.addTransaction: notes = $notes');
+    final body = {
       'restaurantId': restaurantId,
       'productId': productId,
       'date': date.toIso8601String(),
       'jarsSold': jarsSold,
       'jarsReturned': jarsReturned,
-    });
+      if (notes != null) 'notes': notes,
+    };
+    print('DEBUG TransactionService.addTransaction: body = $body');
+    
+    final response = await _apiService.post('/transactions', body);
     final data = response['data'] as Map<String, dynamic>;
+    print('DEBUG TransactionService.addTransaction: response data = $data');
     return Transaction.fromJson(data);
   }
 
@@ -37,6 +44,8 @@ class TransactionService {
     DateTime? date,
     int? jarsSold,
     int? jarsReturned,
+    DateTime? returnDate,
+    String? notes,
   }) async {
     final Map<String, dynamic> body = {};
     
@@ -49,9 +58,19 @@ class TransactionService {
     if (jarsReturned != null) {
       body['jarsReturned'] = jarsReturned;
     }
+    if (returnDate != null) {
+      body['returnDate'] = returnDate.toIso8601String();
+    }
+    if (notes != null) {
+      body['notes'] = notes;
+    }
+    
+    print('DEBUG TransactionService.updateTransaction: notes = $notes');
+    print('DEBUG TransactionService.updateTransaction: body = $body');
     
     final response = await _apiService.put('/transactions/$transactionId', body);
     final data = response['data'] as Map<String, dynamic>;
+    print('DEBUG TransactionService.updateTransaction: response data = $data');
     return Transaction.fromJson(data);
   }
 

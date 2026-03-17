@@ -93,7 +93,7 @@ const getUsers = async (req, res, next) => {
 const updateUser = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { username, password } = req.body;
+    const { username, password, currentPassword } = req.body;
 
     const user = await User.findOne({ id });
 
@@ -106,6 +106,23 @@ const updateUser = async (req, res, next) => {
           details: {},
         },
       });
+    }
+
+    // If updating admin account, verify current password
+    if (user.role === 'admin' && currentPassword) {
+      const { comparePassword } = require('../utils/auth');
+      const isPasswordValid = await comparePassword(currentPassword, user.passwordHash);
+      
+      if (!isPasswordValid) {
+        return res.status(401).json({
+          success: false,
+          error: {
+            code: 'INVALID_PASSWORD',
+            message: 'كلمة المرور الحالية غير صحيحة',
+            details: {},
+          },
+        });
+      }
     }
 
     // Update username if provided

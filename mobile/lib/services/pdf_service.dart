@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -69,21 +70,32 @@ class PdfService {
                     ],
                   ),
                   // Restaurant Logo
-                  if (restaurant.photoUrl != null && restaurant.photoUrl!.isNotEmpty)
-                    pw.Container(
-                      width: 80,
-                      height: 80,
-                      decoration: pw.BoxDecoration(
-                        border: pw.Border.all(color: PdfColors.grey300),
-                        borderRadius: pw.BorderRadius.circular(8),
-                      ),
-                      child: pw.Center(
-                        child: pw.Text(
-                          '🍽️',
-                          style: const pw.TextStyle(fontSize: 40),
-                        ),
-                      ),
+                  pw.Container(
+                    width: 80,
+                    height: 80,
+                    decoration: pw.BoxDecoration(
+                      border: pw.Border.all(color: PdfColors.grey300),
+                      borderRadius: pw.BorderRadius.circular(8),
+                      color: PdfColors.grey100,
                     ),
+                    child: restaurant.photoUrl != null && restaurant.photoUrl!.isNotEmpty
+                        ? pw.Image(
+                            pw.MemoryImage(
+                              base64Decode(
+                                restaurant.photoUrl!.contains(',')
+                                    ? restaurant.photoUrl!.split(',')[1]
+                                    : restaurant.photoUrl!,
+                              ),
+                            ),
+                            fit: pw.BoxFit.cover,
+                          )
+                        : pw.Center(
+                            child: pw.Text(
+                              '🍽️',
+                              style: const pw.TextStyle(fontSize: 40),
+                            ),
+                          ),
+                  ),
                 ],
               ),
               pw.SizedBox(height: 20),
@@ -124,19 +136,6 @@ class PdfService {
                     ),
                     pw.SizedBox(height: 5),
                     pw.Divider(),
-                    pw.Row(
-                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                      children: [
-                        pw.Text(
-                          'إجمالي العلب الفارغة:',
-                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold, font: arabicFont),
-                        ),
-                        pw.Text(
-                          '${totalUsed.toStringAsFixed(0)} برطمان',
-                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold, font: arabicFont),
-                        ),
-                      ],
-                    ),
                   ],
                 ),
               ),
@@ -156,6 +155,13 @@ class PdfService {
               // Table
               pw.Table(
                 border: pw.TableBorder.all(color: PdfColors.grey300),
+                columnWidths: {
+                  0: const pw.FlexColumnWidth(1),
+                  1: const pw.FlexColumnWidth(2),
+                  2: const pw.FlexColumnWidth(1.5),
+                  3: const pw.FlexColumnWidth(1.5),
+                  4: const pw.FlexColumnWidth(3),
+                },
                 children: [
                   // Header
                   pw.TableRow(
@@ -165,6 +171,7 @@ class PdfService {
                       _buildTableCell('التاريخ', arabicFont, isHeader: true),
                       _buildTableCell('المسلم', arabicFont, isHeader: true),
                       _buildTableCell('المرتجع', arabicFont, isHeader: true),
+                      _buildTableCell('ملاحظات', arabicFont, isHeader: true),
                     ],
                   ),
                   // Data rows
@@ -174,6 +181,7 @@ class PdfService {
                     final delivered = transaction.jarsDelivered.toDouble();
                     final returned = transaction.jarsEmpty.toDouble();
                     final dateStr = '${transaction.deliveryDate.year}-${transaction.deliveryDate.month.toString().padLeft(2, '0')}-${transaction.deliveryDate.day.toString().padLeft(2, '0')}';
+                    final notes = transaction.notes ?? '-';
 
                     return pw.TableRow(
                       children: [
@@ -181,6 +189,7 @@ class PdfService {
                         _buildTableCell(dateStr, arabicFont),
                         _buildTableCell(delivered.toStringAsFixed(0), arabicFont),
                         _buildTableCell(returned.toStringAsFixed(0), arabicFont),
+                        _buildTableCell(notes, arabicFont),
                       ],
                     );
                   }).toList(),

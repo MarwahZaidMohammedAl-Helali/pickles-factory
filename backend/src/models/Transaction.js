@@ -22,6 +22,10 @@ const transactionSchema = new mongoose.Schema({
     type: Date,
     required: [true, 'التاريخ مطلوب'],
   },
+  returnDate: {
+    type: Date,
+    required: false,
+  },
   jarsSold: {
     type: Number,
     required: [true, 'عدد البرطمانات المباعة مطلوب'],
@@ -40,12 +44,25 @@ const transactionSchema = new mongoose.Schema({
       message: 'عدد البرطمانات المرتجعة يجب أن يكون عدد صحيح',
     },
   },
+  notes: {
+    type: String,
+    required: false,
+  },
   createdBy: {
     type: String,
     required: false,
     ref: 'User',
   },
+  updatedBy: {
+    type: String,
+    required: false,
+    ref: 'User',
+  },
   createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+  updatedAt: {
     type: Date,
     default: Date.now,
   },

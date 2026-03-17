@@ -171,7 +171,7 @@ class _AddRestaurantScreenState extends State<AddRestaurantScreen> {
                 TextFormField(
                   controller: _nameController,
                   decoration: InputDecoration(
-                    labelText: l10n.restaurantName,
+                    hintText: 'اسم المطعم',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),

@@ -49,16 +49,12 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
     try {
       await _restaurantService.initialize();
       await _transactionService.initialize();
-      await _productService.initialize();
 
       final details = await _restaurantService.getRestaurantDetails(widget.restaurant.id);
       final transactions = await _transactionService.getTransactions(widget.restaurant.id);
-      final products = await _productService.getProducts();
 
+      // Create empty product map - we don't need products anymore
       final productMap = <String, Product>{};
-      for (var product in products) {
-        productMap[product.id] = product;
-      }
 
       setState(() {
         _restaurantDetails = details;

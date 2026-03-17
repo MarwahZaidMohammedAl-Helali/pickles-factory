@@ -1,9 +1,11 @@
 import 'package:flutter/foundation.dart';
 import '../models/user.dart';
 import '../services/auth_service.dart';
+import '../services/keep_alive_service.dart';
 
 class AuthProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
+  final KeepAliveService _keepAliveService = KeepAliveService();
   User? _currentUser;
   bool _isInitialized = false;
 
@@ -19,12 +21,16 @@ class AuthProvider with ChangeNotifier {
 
   Future<void> login(String username, String password) async {
     _currentUser = await _authService.login(username, password);
+    // Start keep-alive service after successful login
+    _keepAliveService.start();
     notifyListeners();
   }
 
   Future<void> logout() async {
     await _authService.logout();
     _currentUser = null;
+    // Stop keep-alive service on logout
+    _keepAliveService.stop();
     notifyListeners();
   }
 

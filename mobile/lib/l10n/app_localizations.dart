@@ -97,7 +97,7 @@ abstract class AppLocalizations {
   /// Application title
   ///
   /// In ar, this message translates to:
-  /// **'اسم المصنع'**
+  /// **''**
   String get appTitle;
 
   /// No description provided for @login.

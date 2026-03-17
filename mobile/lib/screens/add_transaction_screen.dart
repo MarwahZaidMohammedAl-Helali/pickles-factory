@@ -27,6 +27,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   final _formKey = GlobalKey<FormState>();
   final _jarsDeliveredController = TextEditingController();
   final _jarsReturnedController = TextEditingController();
+  final _notesController = TextEditingController();
   final RestaurantService _restaurantService = RestaurantService();
   final ProductService _productService = ProductService();
   final TransactionService _transactionService = TransactionService();
@@ -53,9 +54,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       _selectedRestaurantId = widget.existingTransaction!.restaurantId;
       _selectedProductId = widget.existingTransaction!.productId;
       _deliveryDate = widget.existingTransaction!.deliveryDate;
+      // Auto-set return date to today (editable)
       _returnDate = widget.existingTransaction!.returnDate ?? DateTime.now();
       _jarsDeliveredController.text = widget.existingTransaction!.jarsDelivered.toString();
       _jarsReturnedController.text = widget.existingTransaction!.jarsEmpty.toString();
+      _notesController.text = widget.existingTransaction!.notes ?? '';
     }
     
     _loadData();
@@ -65,6 +68,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   void dispose() {
     _jarsDeliveredController.dispose();
     _jarsReturnedController.dispose();
+    _notesController.dispose();
     super.dispose();
   }
 
@@ -157,6 +161,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     try {
       await _transactionService.initialize();
       
+      final notesValue = _notesController.text.isEmpty ? null : _notesController.text;
+      print('DEBUG: Saving transaction with notes: $notesValue');
+      
       if (_isEditingTransaction) {
         // Update existing transaction with all fields
         await _transactionService.updateTransaction(
@@ -164,6 +171,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           date: _deliveryDate,
           jarsSold: int.parse(_jarsDeliveredController.text),
           jarsReturned: int.parse(_jarsReturnedController.text),
+          returnDate: _returnDate,
+          notes: notesValue,
         );
       } else {
         // Create new delivery transaction
@@ -173,6 +182,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           date: _deliveryDate,
           jarsSold: int.parse(_jarsDeliveredController.text),
           jarsReturned: int.parse(_jarsReturnedController.text.isEmpty ? '0' : _jarsReturnedController.text),
+          notes: notesValue,
         );
       }
 
@@ -208,44 +218,45 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       // Info card explaining the process
-                      if (!_isEditingTransaction)
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                theme.colorScheme.primaryContainer,
-                                theme.colorScheme.primaryContainer.withOpacity(0.7),
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.primary.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Icon(
-                                  Icons.info_outline,
-                                  color: theme.colorScheme.onPrimaryContainer,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  'سجل تاريخ التسليم والكمية المسلمة. يمكنك تعديل المرتجعات لاحقاً.',
-                                  style: TextStyle(
-                                    color: theme.colorScheme.onPrimaryContainer,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              theme.colorScheme.primaryContainer,
+                              theme.colorScheme.primaryContainer.withOpacity(0.7),
                             ],
                           ),
+                          borderRadius: BorderRadius.circular(16),
                         ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primary.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(
+                                Icons.info_outline,
+                                color: theme.colorScheme.onPrimaryContainer,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                _isEditingTransaction
+                                    ? 'يمكنك تعديل أي حقل في أي وقت.'
+                                    : 'سجل الكمية المسلمة والمرتجعة. يمكنك ترك المرتجع فارغاً وإضافته لاحقاً.',
+                                style: TextStyle(
+                                  color: theme.colorScheme.onPrimaryContainer,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                       const SizedBox(height: 20),
                       
                       // Restaurant selector (only show if not pre-selected)
@@ -333,9 +344,36 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                       ),
                       const SizedBox(height: 16),
                       
+                      // Jars returned
+                      TextFormField(
+                        controller: _jarsReturnedController,
+                        decoration: InputDecoration(
+                          labelText: l10n.jarsReturned,
+                          hintText: 'عدد البرطمانات المرتجعة',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          filled: true,
+                          prefixIcon: const Icon(Icons.assignment_return),
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return null; // Optional field
+                          }
+                          final intValue = int.tryParse(value);
+                          if (intValue == null || intValue < 0) {
+                            return 'يجب أن يكون رقم صحيح';
+                          }
+                          return null;
+                        },
+                        enabled: !_isLoading,
+                      ),
+                      const SizedBox(height: 16),
+                      
                       // Return date (only show if returns are entered)
-                      if (_jarsReturnedController.text.isNotEmpty && int.tryParse(_jarsReturnedController.text) != null && int.tryParse(_jarsReturnedController.text)! > 0) ...[
-                        const SizedBox(height: 16),
+                      if (_jarsReturnedController.text.isNotEmpty && int.tryParse(_jarsReturnedController.text) != null && int.tryParse(_jarsReturnedController.text)! > 0)
                         InkWell(
                           onTap: _isLoading ? null : () => _selectReturnDate(context),
                           child: InputDecorator(
@@ -360,7 +398,24 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                             ),
                           ),
                         ),
-                      ],
+                      if (_jarsReturnedController.text.isNotEmpty && int.tryParse(_jarsReturnedController.text) != null && int.tryParse(_jarsReturnedController.text)! > 0)
+                        const SizedBox(height: 16),
+                      
+                      // Notes field
+                      TextFormField(
+                        controller: _notesController,
+                        decoration: InputDecoration(
+                          labelText: 'ملاحظات',
+                          hintText: 'أضف ملاحظات (اختياري)',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          filled: true,
+                          prefixIcon: const Icon(Icons.note),
+                        ),
+                        maxLines: 2,
+                        enabled: !_isLoading,
+                      ),
                       
                       const SizedBox(height: 24),
                       

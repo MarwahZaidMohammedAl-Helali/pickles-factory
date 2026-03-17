@@ -37,13 +37,49 @@ class _AddStaffScreenState extends State<AddStaffScreen> {
 
     try {
       await _staffService.initialize();
-      await _staffService.addStaff(
+      final newUser = await _staffService.addStaff(
         _usernameController.text,
         _passwordController.text,
       );
 
       if (mounted) {
-        Navigator.of(context).pop(true);
+        // Show password confirmation dialog
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => Directionality(
+            textDirection: TextDirection.rtl,
+            child: AlertDialog(
+              title: const Text('تم إنشاء الموظف بنجاح'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('اسم المستخدم: ${newUser.username}'),
+                  const SizedBox(height: 12),
+                  Text('كلمة المرور: ${newUser.plainPassword}'),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'تأكد من حفظ كلمة المرور في مكان آمن',
+                    style: TextStyle(
+                      color: Colors.orange,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    Navigator.of(context).pop(true);
+                  },
+                  child: const Text('تم'),
+                ),
+              ],
+            ),
+          ),
+        );
       }
     } catch (e) {
       setState(() {

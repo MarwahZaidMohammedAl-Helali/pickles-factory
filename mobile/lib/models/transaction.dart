@@ -10,6 +10,11 @@ class Transaction {
   final int jarsEmpty; // Empty jars returned by restaurant (they used these)
   final int jarsUsed; // Calculated: delivered - empty (same as jarsEmpty)
   final bool isCompleted; // Has returns been added?
+  final String? createdBy; // Username who created this transaction
+  final String? createdByUsername; // Display name of who created it
+  final String? updatedBy; // Username who last updated this transaction
+  final String? updatedByUsername; // Display name of who updated it
+  final String? notes; // Optional notes for the transaction
 
   Transaction({
     required this.id,
@@ -23,6 +28,11 @@ class Transaction {
     this.jarsEmpty = 0,
     int? jarsUsed,
     this.isCompleted = false,
+    this.createdBy,
+    this.createdByUsername,
+    this.updatedBy,
+    this.updatedByUsername,
+    this.notes,
   }) : jarsUsed = jarsUsed ?? jarsEmpty;
 
   // Legacy support for old API
@@ -31,6 +41,8 @@ class Transaction {
   DateTime get date => deliveryDate;
 
   factory Transaction.fromJson(Map<String, dynamic> json) {
+    print('DEBUG Transaction.fromJson: json = $json');
+    
     final deliveryDate = json['deliveryDate'] != null 
         ? DateTime.parse(json['deliveryDate'] as String)
         : DateTime.parse(json['date'] as String); // Fallback to old field
@@ -41,6 +53,9 @@ class Transaction {
 
     final jarsDelivered = (json['jarsDelivered'] ?? json['jarsSold'] ?? 0) as int;
     final jarsEmpty = (json['jarsEmpty'] ?? json['jarsReturned'] ?? 0) as int;
+    final notes = json['notes'] as String?;
+    
+    print('DEBUG Transaction.fromJson: notes = $notes');
 
     return Transaction(
       id: json['id'] as String,
@@ -56,6 +71,11 @@ class Transaction {
       jarsEmpty: jarsEmpty,
       jarsUsed: (json['jarsUsed'] ?? jarsEmpty) as int,
       isCompleted: json['isCompleted'] as bool? ?? (jarsEmpty > 0),
+      createdBy: json['createdBy'] as String?,
+      createdByUsername: json['createdByUsername'] as String?,
+      updatedBy: json['updatedBy'] as String?,
+      updatedByUsername: json['updatedByUsername'] as String?,
+      notes: notes,
     );
   }
 
@@ -70,6 +90,7 @@ class Transaction {
       'jarsEmpty': jarsEmpty,
       'jarsUsed': jarsUsed,
       'isCompleted': isCompleted,
+      if (notes != null) 'notes': notes,
       // Legacy fields for backward compatibility
       'date': deliveryDate.toIso8601String(),
       'jarsSold': jarsDelivered,
@@ -90,6 +111,11 @@ class Transaction {
     int? jarsEmpty,
     int? jarsUsed,
     bool? isCompleted,
+    String? createdBy,
+    String? createdByUsername,
+    String? updatedBy,
+    String? updatedByUsername,
+    String? notes,
   }) {
     return Transaction(
       id: id ?? this.id,
@@ -103,6 +129,11 @@ class Transaction {
       jarsEmpty: jarsEmpty ?? this.jarsEmpty,
       jarsUsed: jarsUsed ?? this.jarsUsed,
       isCompleted: isCompleted ?? this.isCompleted,
+      createdBy: createdBy ?? this.createdBy,
+      createdByUsername: createdByUsername ?? this.createdByUsername,
+      updatedBy: updatedBy ?? this.updatedBy,
+      updatedByUsername: updatedByUsername ?? this.updatedByUsername,
+      notes: notes ?? this.notes,
     );
   }
 }

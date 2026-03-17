@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../models/restaurant.dart';
 import '../models/transaction.dart';
 import '../services/transaction_service.dart';
+import '../providers/auth_provider.dart';
+import '../screens/add_transaction_screen.dart';
 
 class RestaurantAnalysisScreen extends StatefulWidget {
   final Restaurant restaurant;
@@ -15,18 +18,27 @@ class RestaurantAnalysisScreen extends StatefulWidget {
 
 class _RestaurantAnalysisScreenState extends State<RestaurantAnalysisScreen> {
   final TransactionService _transactionService = TransactionService();
+  final TextEditingController _searchController = TextEditingController();
+  
   List<Transaction>? _allTransactions;
-  List<Transaction>? _filteredTransactions;
   bool _isLoading = true;
   String? _errorMessage;
   
   DateTime? _startDate;
   DateTime? _endDate;
+  bool _showOnlyPending = false;
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
     _loadTransactions();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadTransactions() async {
@@ -41,7 +53,6 @@ class _RestaurantAnalysisScreenState extends State<RestaurantAnalysisScreen> {
       
       setState(() {
         _allTransactions = transactions;
-        _filteredTransactions = transactions;
         _isLoading = false;
       });
     } catch (e) {
@@ -52,83 +63,57 @@ class _RestaurantAnalysisScreenState extends State<RestaurantAnalysisScreen> {
     }
   }
 
-  void _applyDateFilter() {
-    if (_allTransactions == null) return;
+  List<Transaction> get _filteredTransactions {
+    if (_allTransactions == null) return [];
+    
+    var filtered = _allTransactions!;
 
-    setState(() {
-      _filteredTransactions = _allTransactions!.where((transaction) {
-        if (_startDate != null && transaction.date.isBefore(_startDate!)) {
-          return false;
-        }
-        if (_endDate != null && transaction.date.isAfter(_endDate!.add(const Duration(days: 1)))) {
-          return false;
-        }
-        return true;
-      }).toList();
-    });
-  }
-
-  Future<void> _selectStartDate() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _startDate ?? DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
-    );
-
-    if (picked != null) {
-      setState(() {
-        _startDate = picked;
-      });
-      _applyDateFilter();
+    // Filter by date range
+    if (_startDate != null) {
+      filtered = filtered.where((t) => t.deliveryDate.isAfter(_startDate!.subtract(const Duration(days: 1)))).toList();
     }
-  }
-
-  Future<void> _selectEndDate() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _endDate ?? DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
-    );
-
-    if (picked != null) {
-      setState(() {
-        _endDate = picked;
-      });
-      _applyDateFilter();
+    if (_endDate != null) {
+      filtered = filtered.where((t) => t.deliveryDate.isBefore(_endDate!.add(const Duration(days: 1)))).toList();
     }
-  }
 
-  void _clearFilters() {
-    setState(() {
-      _startDate = null;
-      _endDate = null;
-      _filteredTransactions = _allTransactions;
-    });
+    // Filter by pending returns
+    if (_showOnlyPending) {
+      filtered = filtered.where((t) => t.jarsEmpty == 0).toList();
+    }
+
+    // Filter by search query (notes)
+    if (_searchQuery.isNotEmpty) {
+      filtered = filtered.where((t) => 
+        t.notes != null && t.notes!.toLowerCase().contains(_searchQuery.toLowerCase())
+      ).toList();
+    }
+
+    return filtered;
   }
 
   int _calculateBalance() {
-    if (_filteredTransactions == null) return 0;
+    final filtered = _filteredTransactions;
     
     int balance = 0;
-    for (var transaction in _filteredTransactions!) {
-      balance += transaction.jarsSold - transaction.jarsReturned;
+    for (var transaction in filtered) {
+      balance += transaction.jarsDelivered - transaction.jarsEmpty;
     }
     return balance;
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     return Scaffold(
       appBar: AppBar(
         title: Text('تحليلات ${widget.restaurant.name}'),
       ),
-      body: _buildBody(),
+      body: _buildBody(theme),
     );
   }
 
-  Widget _buildBody() {
+  Widget _buildBody(ThemeData theme) {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -140,7 +125,7 @@ class _RestaurantAnalysisScreenState extends State<RestaurantAnalysisScreen> {
           children: [
             Text(
               _errorMessage!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
+              style: TextStyle(color: theme.colorScheme.error),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
@@ -153,65 +138,19 @@ class _RestaurantAnalysisScreenState extends State<RestaurantAnalysisScreen> {
       );
     }
 
-    return Column(
+    final filteredTransactions = _filteredTransactions;
+    final authProvider = Provider.of<AuthProvider>(context);
+    final isAdmin = authProvider.isAdmin();
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
       children: [
         // Filter Section
-        Card(
-          margin: const EdgeInsets.all(16),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'تصفية حسب التاريخ',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: _selectStartDate,
-                        icon: const Icon(Icons.calendar_today),
-                        label: Text(
-                          _startDate == null
-                              ? 'من تاريخ'
-                              : DateFormat('yyyy-MM-dd').format(_startDate!),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: _selectEndDate,
-                        icon: const Icon(Icons.calendar_today),
-                        label: Text(
-                          _endDate == null
-                              ? 'إلى تاريخ'
-                              : DateFormat('yyyy-MM-dd').format(_endDate!),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                if (_startDate != null || _endDate != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: TextButton.icon(
-                      onPressed: _clearFilters,
-                      icon: const Icon(Icons.clear),
-                      label: const Text('مسح التصفية'),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
+        _buildFilterSection(theme),
+        const SizedBox(height: 16),
 
         // Summary Card
         Card(
-          margin: const EdgeInsets.symmetric(horizontal: 16),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -226,13 +165,15 @@ class _RestaurantAnalysisScreenState extends State<RestaurantAnalysisScreen> {
                   children: [
                     _buildSummaryItem(
                       'عدد المعاملات',
-                      '${_filteredTransactions?.length ?? 0}',
+                      '${filteredTransactions.length}',
                       Icons.receipt,
+                      theme,
                     ),
                     _buildSummaryItem(
                       'الرصيد',
                       '${_calculateBalance()}',
                       Icons.account_balance_wallet,
+                      theme,
                     ),
                   ],
                 ),
@@ -243,63 +184,435 @@ class _RestaurantAnalysisScreenState extends State<RestaurantAnalysisScreen> {
 
         const SizedBox(height: 16),
 
-        // Transactions List
-        Expanded(
-          child: _filteredTransactions == null || _filteredTransactions!.isEmpty
-              ? const Center(child: Text('لا توجد معاملات'))
-              : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: _filteredTransactions!.length,
-                  itemBuilder: (context, index) {
-                    final transaction = _filteredTransactions![index];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                          child: Icon(
-                            Icons.receipt,
-                            color: Theme.of(context).colorScheme.onPrimaryContainer,
-                          ),
-                        ),
-                        title: Text(
-                          DateFormat('yyyy-MM-dd').format(transaction.date),
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('علب مباعة: ${transaction.jarsSold}'),
-                            Text('علب مرتجعة: ${transaction.jarsReturned}'),
-                            Text(
-                              'الرصيد: ${transaction.jarsSold - transaction.jarsReturned}',
-                              style: TextStyle(
-                                color: Theme.of(context).colorScheme.primary,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
+        // Transactions count
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Text(
+            'عدد المعاملات: ${filteredTransactions.length}',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.secondary,
+            ),
+          ),
         ),
+
+        // Table header
+        _buildTableHeader(theme),
+
+        // Table rows
+        if (filteredTransactions.isEmpty)
+          Padding(
+            padding: const EdgeInsets.all(32),
+            child: Text(
+              'لا توجد معاملات تطابق الفلتر',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.secondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          )
+        else
+          ...filteredTransactions.map((transaction) => 
+            _buildTableRow(context, transaction, theme, isAdmin)
+          ),
       ],
     );
   }
 
-  Widget _buildSummaryItem(String label, String value, IconData icon) {
+  Widget _buildFilterSection(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.filter_list, size: 20, color: theme.colorScheme.primary),
+              const SizedBox(width: 8),
+              Text(
+                'فلترة المعاملات',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          
+          // Search by notes
+          TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'بحث في الملاحظات...',
+              prefixIcon: const Icon(Icons.search, size: 20),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              isDense: true,
+            ),
+            onChanged: (value) {
+              setState(() {
+                _searchQuery = value;
+              });
+            },
+          ),
+          const SizedBox(height: 12),
+          
+          // Date range and pending filter
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              // Start date
+              InkWell(
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: _startDate ?? DateTime.now(),
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime.now(),
+                  );
+                  if (picked != null) {
+                    setState(() {
+                      _startDate = picked;
+                    });
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: _startDate != null ? theme.colorScheme.primaryContainer : theme.colorScheme.surface,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: theme.colorScheme.outline),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.calendar_today, size: 16, color: theme.colorScheme.onSurface),
+                      const SizedBox(width: 4),
+                      Text(
+                        _startDate != null ? DateFormat('yyyy-MM-dd').format(_startDate!) : 'من تاريخ',
+                        style: theme.textTheme.bodySmall,
+                      ),
+                      if (_startDate != null) ...[
+                        const SizedBox(width: 4),
+                        InkWell(
+                          onTap: () {
+                            setState(() {
+                              _startDate = null;
+                            });
+                          },
+                          child: Icon(Icons.close, size: 16, color: theme.colorScheme.error),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              
+              // End date
+              InkWell(
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: _endDate ?? DateTime.now(),
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime.now(),
+                  );
+                  if (picked != null) {
+                    setState(() {
+                      _endDate = picked;
+                    });
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: _endDate != null ? theme.colorScheme.primaryContainer : theme.colorScheme.surface,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: theme.colorScheme.outline),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.calendar_today, size: 16, color: theme.colorScheme.onSurface),
+                      const SizedBox(width: 4),
+                      Text(
+                        _endDate != null ? DateFormat('yyyy-MM-dd').format(_endDate!) : 'إلى تاريخ',
+                        style: theme.textTheme.bodySmall,
+                      ),
+                      if (_endDate != null) ...[
+                        const SizedBox(width: 4),
+                        InkWell(
+                          onTap: () {
+                            setState(() {
+                              _endDate = null;
+                            });
+                          },
+                          child: Icon(Icons.close, size: 16, color: theme.colorScheme.error),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              
+              // Pending filter
+              InkWell(
+                onTap: () {
+                  setState(() {
+                    _showOnlyPending = !_showOnlyPending;
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: _showOnlyPending ? theme.colorScheme.primaryContainer : theme.colorScheme.surface,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: theme.colorScheme.outline),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        _showOnlyPending ? Icons.check_box : Icons.check_box_outline_blank,
+                        size: 16,
+                        color: theme.colorScheme.onSurface,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'بانتظار الإرجاع',
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTableHeader(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primaryContainer,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 2,
+            child: Text(
+              'التاريخ',
+              style: theme.textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onPrimaryContainer,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 1,
+            child: Text(
+              'المسلم',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onPrimaryContainer,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 1,
+            child: Text(
+              'المرتجع',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onPrimaryContainer,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(
+              'ملاحظات',
+              style: theme.textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onPrimaryContainer,
+              ),
+            ),
+          ),
+          const SizedBox(width: 40), // Space for menu button
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTableRow(
+    BuildContext context,
+    Transaction transaction,
+    ThemeData theme,
+    bool isAdmin,
+  ) {
+    final isPending = transaction.jarsEmpty == 0;
+    
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: theme.colorScheme.outline.withOpacity(0.2),
+            width: 1,
+          ),
+        ),
+        color: isPending 
+            ? theme.colorScheme.errorContainer.withOpacity(0.1)
+            : null,
+      ),
+      child: InkWell(
+        onTap: isAdmin ? () => _editTransaction(context, transaction) : null,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Date
+              Expanded(
+                flex: 2,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      DateFormat('yyyy-MM-dd').format(transaction.deliveryDate),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    if (transaction.createdByUsername != null)
+                      Text(
+                        transaction.createdByUsername!,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.secondary,
+                          fontSize: 10,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              
+              // Delivered
+              Expanded(
+                flex: 1,
+                child: Text(
+                  '${transaction.jarsDelivered}',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+              ),
+              
+              // Returned
+              Expanded(
+                flex: 1,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isPending 
+                        ? theme.colorScheme.errorContainer.withOpacity(0.3)
+                        : theme.colorScheme.primaryContainer.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    isPending ? '-' : '${transaction.jarsEmpty}',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: isPending 
+                          ? theme.colorScheme.error
+                          : theme.colorScheme.primary,
+                    ),
+                  ),
+                ),
+              ),
+              
+              // Notes
+              Expanded(
+                flex: 2,
+                child: Text(
+                  transaction.notes ?? '-',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.secondary,
+                    fontSize: 11,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              
+              // Menu button
+              if (isAdmin)
+                PopupMenuButton(
+                  padding: EdgeInsets.zero,
+                  iconSize: 20,
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit, size: 18),
+                          SizedBox(width: 8),
+                          Text('تعديل'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete, size: 18, color: Colors.red),
+                          SizedBox(width: 8),
+                          Text('حذف', style: TextStyle(color: Colors.red)),
+                        ],
+                      ),
+                    ),
+                  ],
+                  onSelected: (value) {
+                    if (value == 'edit') {
+                      _editTransaction(context, transaction);
+                    } else if (value == 'delete') {
+                      _deleteTransaction(context, transaction);
+                    }
+                  },
+                )
+              else
+                const SizedBox(width: 40),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSummaryItem(String label, String value, IconData icon, ThemeData theme) {
     return Column(
       children: [
-        Icon(icon, size: 32, color: Theme.of(context).colorScheme.primary),
+        Icon(icon, size: 32, color: theme.colorScheme.primary),
         const SizedBox(height: 8),
         Text(
           value,
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: Theme.of(context).colorScheme.primary,
+            color: theme.colorScheme.primary,
           ),
         ),
         Text(
@@ -308,5 +621,67 @@ class _RestaurantAnalysisScreenState extends State<RestaurantAnalysisScreen> {
         ),
       ],
     );
+  }
+
+  Future<void> _editTransaction(
+    BuildContext context,
+    Transaction transaction,
+  ) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddTransactionScreen(
+          existingTransaction: transaction,
+        ),
+      ),
+    );
+
+    if (result == true) {
+      _loadTransactions();
+    }
+  }
+
+  Future<void> _deleteTransaction(
+    BuildContext context,
+    Transaction transaction,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('تأكيد الحذف'),
+        content: const Text('هل أنت متأكد من حذف هذه المعاملة؟'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('إلغاء'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await _transactionService.initialize();
+        await _transactionService.deleteTransaction(transaction.id);
+
+        _loadTransactions();
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('تم حذف المعاملة بنجاح')),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('خطأ في الحذف: $e')),
+          );
+        }
+      }
+    }
   }
 }

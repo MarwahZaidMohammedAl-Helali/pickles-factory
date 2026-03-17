@@ -23,10 +23,11 @@ class StaffService {
     return User.fromJson(data);
   }
 
-  Future<User> updateStaff(String userId, {String? username, String? password}) async {
+  Future<User> updateStaff(String userId, {String? username, String? password, String? currentPassword}) async {
     final body = <String, dynamic>{};
     if (username != null) body['username'] = username;
     if (password != null) body['password'] = password;
+    if (currentPassword != null) body['currentPassword'] = currentPassword;
 
     final response = await _apiService.put('/users/$userId', body);
     final data = response['data'] as Map<String, dynamic>;

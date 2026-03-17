@@ -8,7 +8,10 @@ const Product = require('../models/Product');
  */
 const createTransaction = async (req, res, next) => {
   try {
-    const { restaurantId, productId, date, jarsSold, jarsReturned } = req.body;
+    const { restaurantId, productId, date, jarsSold, jarsReturned, notes } = req.body;
+    
+    console.log('DEBUG createTransaction: req.body =', req.body);
+    console.log('DEBUG createTransaction: notes =', notes);
 
     // Validate all required fields are provided
     if (!restaurantId) {
@@ -104,10 +107,13 @@ const createTransaction = async (req, res, next) => {
       date: new Date(date),
       jarsSold,
       jarsReturned,
+      notes: notes || null,
       createdBy: req.user.id, // Save who created this transaction
     });
 
+    console.log('DEBUG createTransaction: transaction before save =', transaction);
     await transaction.save();
+    console.log('DEBUG createTransaction: transaction after save =', transaction);
 
     // Return success response
     res.status(201).json({
@@ -117,8 +123,10 @@ const createTransaction = async (req, res, next) => {
         restaurantId: transaction.restaurantId,
         productId: transaction.productId,
         date: transaction.date,
+        returnDate: transaction.returnDate,
         jarsSold: transaction.jarsSold,
         jarsReturned: transaction.jarsReturned,
+        notes: transaction.notes,
         createdBy: transaction.createdBy,
       },
     });
@@ -163,10 +171,16 @@ const getTransactions = async (req, res, next) => {
       transactions.map(async (transaction) => {
         const product = await Product.findOne({ id: transaction.productId });
         let createdByUser = null;
+        let updatedByUser = null;
         
         if (transaction.createdBy) {
           const User = require('../models/User');
           createdByUser = await User.findOne({ id: transaction.createdBy });
+        }
+        
+        if (transaction.updatedBy) {
+          const User = require('../models/User');
+          updatedByUser = await User.findOne({ id: transaction.updatedBy });
         }
         
         return {
@@ -176,13 +190,20 @@ const getTransactions = async (req, res, next) => {
           productName: product ? product.name : null,
           productPrice: product ? product.price : null,
           date: transaction.date,
+          returnDate: transaction.returnDate,
           jarsSold: transaction.jarsSold,
           jarsReturned: transaction.jarsReturned,
+          notes: transaction.notes,
           createdBy: transaction.createdBy,
           createdByUsername: createdByUser ? createdByUser.username : null,
+          updatedBy: transaction.updatedBy,
+          updatedByUsername: updatedByUser ? updatedByUser.username : null,
         };
       })
     );
+
+    console.log('DEBUG getTransactions: returning', transactionsWithDetails.length, 'transactions');
+    console.log('DEBUG getTransactions: first transaction notes =', transactionsWithDetails[0]?.notes);
 
     res.json({
       success: true,
@@ -200,7 +221,10 @@ const getTransactions = async (req, res, next) => {
 const updateTransaction = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { date, jarsSold, jarsReturned } = req.body;
+    const { date, jarsSold, jarsReturned, returnDate, notes } = req.body;
+    
+    console.log('DEBUG updateTransaction: req.body =', req.body);
+    console.log('DEBUG updateTransaction: notes =', notes);
 
     // Find transaction
     const transaction = await Transaction.findOne({ id });
@@ -249,7 +273,22 @@ const updateTransaction = async (req, res, next) => {
       transaction.jarsReturned = jarsReturned;
     }
 
+    if (returnDate !== undefined) {
+      transaction.returnDate = new Date(returnDate);
+    }
+
+    if (notes !== undefined) {
+      console.log('DEBUG updateTransaction: setting notes to:', notes);
+      transaction.notes = notes || null;
+    }
+
+    // Track who updated it
+    transaction.updatedBy = req.user.id;
+    transaction.updatedAt = new Date();
+
+    console.log('DEBUG updateTransaction: transaction before save =', transaction);
     await transaction.save();
+    console.log('DEBUG updateTransaction: transaction after save =', transaction);
 
     res.json({
       success: true,
@@ -258,8 +297,11 @@ const updateTransaction = async (req, res, next) => {
         restaurantId: transaction.restaurantId,
         productId: transaction.productId,
         date: transaction.date,
+        returnDate: transaction.returnDate,
         jarsSold: transaction.jarsSold,
         jarsReturned: transaction.jarsReturned,
+        notes: transaction.notes,
+        updatedBy: transaction.updatedBy,
       },
     });
   } catch (error) {

@@ -8,13 +8,12 @@ import '../services/transaction_service.dart';
 import '../providers/auth_provider.dart';
 import '../screens/add_transaction_screen.dart';
 
-class TransactionListWidget extends StatelessWidget {
+class TransactionListWidget extends StatefulWidget {
   final List<Transaction> transactions;
   final Map<String, Product>? productMap;
   final Function()? onTransactionUpdated;
-  final TransactionService _transactionService = TransactionService();
 
-  TransactionListWidget({
+  const TransactionListWidget({
     super.key,
     required this.transactions,
     this.productMap,
@@ -22,12 +21,20 @@ class TransactionListWidget extends StatelessWidget {
   });
 
   @override
+  State<TransactionListWidget> createState() => _TransactionListWidgetState();
+}
+
+class _TransactionListWidgetState extends State<TransactionListWidget> {
+  final TransactionService _transactionService = TransactionService();
+
+  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final authProvider = Provider.of<AuthProvider>(context);
     final isAdmin = authProvider.isAdmin();
+    final theme = Theme.of(context);
 
-    if (transactions.isEmpty) {
+    if (widget.transactions.isEmpty) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
@@ -36,263 +43,240 @@ class TransactionListWidget extends StatelessWidget {
       );
     }
 
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: transactions.length,
-      itemBuilder: (context, index) {
-        final transaction = transactions[index];
-        return _buildTransactionCard(context, transaction, l10n, isAdmin);
-      },
+    return Column(
+      children: [
+        // Results count
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Text(
+            'عدد المعاملات: ${widget.transactions.length}',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.secondary,
+            ),
+          ),
+        ),
+        
+        // Table header
+        _buildTableHeader(context, theme),
+        
+        // Table rows
+        ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: widget.transactions.length,
+          itemBuilder: (context, index) {
+            final transaction = widget.transactions[index];
+            return _buildTableRow(context, transaction, theme, isAdmin);
+          },
+        ),
+      ],
     );
   }
 
-  Widget _buildTransactionCard(
-    BuildContext context,
-    Transaction transaction,
-    AppLocalizations l10n,
-    bool isAdmin,
-  ) {
-    final theme = Theme.of(context);
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              theme.colorScheme.surface,
-              theme.colorScheme.surface.withOpacity(0.8),
-            ],
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(
-                          Icons.receipt,
-                          color: theme.colorScheme.onPrimaryContainer,
-                          size: 24,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            DateFormat('yyyy-MM-dd').format(transaction.date),
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            DateFormat('EEEE', 'ar').format(transaction.date),
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.secondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  if (isAdmin)
-                    PopupMenuButton(
-                      itemBuilder: (context) => [
-                        if (transaction.jarsEmpty == 0)
-                          const PopupMenuItem(
-                            value: 'add_returns',
-                            child: Row(
-                              children: [
-                                Icon(Icons.add, size: 20),
-                                SizedBox(width: 8),
-                                Text('إضافة العلب الفارغة'),
-                              ],
-                            ),
-                          ),
-                        const PopupMenuItem(
-                          value: 'edit',
-                          child: Row(
-                            children: [
-                              Icon(Icons.edit, size: 20),
-                              SizedBox(width: 8),
-                              Text('تعديل'),
-                            ],
-                          ),
-                        ),
-                        const PopupMenuItem(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(Icons.delete, size: 20, color: Colors.red),
-                              SizedBox(width: 8),
-                              Text('حذف', style: TextStyle(color: Colors.red)),
-                            ],
-                          ),
-                        ),
-                      ],
-                      onSelected: (value) {
-                        if (value == 'add_returns') {
-                          _addReturnsToTransaction(context, transaction);
-                        } else if (value == 'edit') {
-                          _editTransactionDate(context, transaction);
-                        } else if (value == 'delete') {
-                          _deleteTransaction(context, transaction, l10n);
-                        }
-                      },
-                    ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildStatBox(
-                    context,
-                    'المسلم',
-                    '${transaction.jarsDelivered}',
-                    Icons.local_shipping,
-                  ),
-                  _buildStatBox(
-                    context,
-                    'المرتجع',
-                    '${transaction.jarsEmpty}',
-                    Icons.assignment_return,
-                    isHighlight: transaction.jarsEmpty > 0,
-                  ),
-                ],
-              ),
-              if (transaction.jarsEmpty == 0)
-                Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.secondaryContainer,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      'بانتظار استرجاع العلب الفارغة...',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSecondaryContainer,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatBox(
-    BuildContext context,
-    String label,
-    String value,
-    IconData icon, {
-    bool isHighlight = false,
-  }) {
-    final theme = Theme.of(context);
+  Widget _buildTableHeader(BuildContext context, ThemeData theme) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: isHighlight
-            ? theme.colorScheme.primaryContainer
-            : theme.colorScheme.secondaryContainer,
-        borderRadius: BorderRadius.circular(12),
+        color: theme.colorScheme.primaryContainer,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
       ),
-      child: Column(
+      child: Row(
         children: [
-          Icon(
-            icon,
-            size: 20,
-            color: isHighlight
-                ? theme.colorScheme.onPrimaryContainer
-                : theme.colorScheme.onSecondaryContainer,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: isHighlight
-                  ? theme.colorScheme.onPrimaryContainer
-                  : theme.colorScheme.onSecondaryContainer,
+          Expanded(
+            flex: 2,
+            child: Text(
+              'التاريخ',
+              style: theme.textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onPrimaryContainer,
+              ),
             ),
           ),
-          Text(
-            value,
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: isHighlight
-                  ? theme.colorScheme.onPrimaryContainer
-                  : theme.colorScheme.onSecondaryContainer,
+          Expanded(
+            flex: 1,
+            child: Text(
+              'المسلم',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onPrimaryContainer,
+              ),
             ),
           ),
+          Expanded(
+            flex: 1,
+            child: Text(
+              'المرتجع',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onPrimaryContainer,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(
+              'ملاحظات',
+              style: theme.textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onPrimaryContainer,
+              ),
+            ),
+          ),
+          const SizedBox(width: 40), // Space for menu button
         ],
       ),
     );
   }
 
-  Future<void> _editTransactionDate(
+  Widget _buildTableRow(
     BuildContext context,
     Transaction transaction,
-  ) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: transaction.date,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
+    ThemeData theme,
+    bool isAdmin,
+  ) {
+    final isPending = transaction.jarsEmpty == 0;
+    
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: theme.colorScheme.outline.withOpacity(0.2),
+            width: 1,
+          ),
+        ),
+        color: isPending 
+            ? theme.colorScheme.errorContainer.withOpacity(0.1)
+            : null,
+      ),
+      child: InkWell(
+        onTap: isAdmin ? () => _editTransaction(context, transaction) : null,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Date
+              Expanded(
+                flex: 2,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      DateFormat('yyyy-MM-dd').format(transaction.deliveryDate),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    if (transaction.createdByUsername != null)
+                      Text(
+                        transaction.createdByUsername!,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.secondary,
+                          fontSize: 10,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              
+              // Delivered
+              Expanded(
+                flex: 1,
+                child: Text(
+                  '${transaction.jarsDelivered}',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+              ),
+              
+              // Returned
+              Expanded(
+                flex: 1,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isPending 
+                        ? theme.colorScheme.errorContainer.withOpacity(0.3)
+                        : theme.colorScheme.primaryContainer.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    isPending ? '-' : '${transaction.jarsEmpty}',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: isPending 
+                          ? theme.colorScheme.error
+                          : theme.colorScheme.primary,
+                    ),
+                  ),
+                ),
+              ),
+              
+              // Notes
+              Expanded(
+                flex: 2,
+                child: Text(
+                  transaction.notes ?? '-',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.secondary,
+                    fontSize: 11,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              
+              // Menu button
+              if (isAdmin)
+                PopupMenuButton(
+                  padding: EdgeInsets.zero,
+                  iconSize: 20,
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit, size: 18),
+                          SizedBox(width: 8),
+                          Text('تعديل'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete, size: 18, color: Colors.red),
+                          SizedBox(width: 8),
+                          Text('حذف', style: TextStyle(color: Colors.red)),
+                        ],
+                      ),
+                    ),
+                  ],
+                  onSelected: (value) {
+                    if (value == 'edit') {
+                      _editTransaction(context, transaction);
+                    } else if (value == 'delete') {
+                      _deleteTransaction(context, transaction);
+                    }
+                  },
+                )
+              else
+                const SizedBox(width: 40),
+            ],
+          ),
+        ),
+      ),
     );
-
-    if (picked != null && picked != transaction.date) {
-      try {
-        await _transactionService.initialize();
-        await _transactionService.updateTransaction(
-          transactionId: transaction.id,
-          date: picked,
-        );
-
-        if (onTransactionUpdated != null) {
-          onTransactionUpdated!();
-        }
-
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('تم تحديث التاريخ بنجاح')),
-          );
-        }
-      } catch (e) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('خطأ في التحديث: $e')),
-          );
-        }
-      }
-    }
   }
 
-  Future<void> _addReturnsToTransaction(
+  Future<void> _editTransaction(
     BuildContext context,
     Transaction transaction,
   ) async {
@@ -305,15 +289,14 @@ class TransactionListWidget extends StatelessWidget {
       ),
     );
 
-    if (result == true && onTransactionUpdated != null) {
-      onTransactionUpdated!();
+    if (result == true && widget.onTransactionUpdated != null) {
+      widget.onTransactionUpdated!();
     }
   }
 
   Future<void> _deleteTransaction(
     BuildContext context,
     Transaction transaction,
-    AppLocalizations l10n,
   ) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -338,8 +321,8 @@ class TransactionListWidget extends StatelessWidget {
         await _transactionService.initialize();
         await _transactionService.deleteTransaction(transaction.id);
 
-        if (onTransactionUpdated != null) {
-          onTransactionUpdated!();
+        if (widget.onTransactionUpdated != null) {
+          widget.onTransactionUpdated!();
         }
 
         if (context.mounted) {
@@ -357,4 +340,3 @@ class TransactionListWidget extends StatelessWidget {
     }
   }
 }
-

@@ -1,7 +1,7 @@
 {
   "@@locale": "ar",
   
-  "appTitle": "اسم المصنع",
+  "appTitle": "",
   "@appTitle": {
     "description": "Application title"
   },
