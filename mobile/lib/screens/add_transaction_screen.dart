@@ -209,30 +209,44 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     children: [
                       // Info card explaining the process
                       if (!_isEditingTransaction)
-                        Card(
-                          color: theme.colorScheme.primaryContainer,
-                          child: Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Row(
-                              children: [
-                                Icon(
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                theme.colorScheme.primaryContainer,
+                                theme.colorScheme.primaryContainer.withOpacity(0.7),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primary.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(
                                   Icons.info_outline,
                                   color: theme.colorScheme.onPrimaryContainer,
                                 ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    'سجل تاريخ التسليم والكمية المسلمة. يمكنك تعديل المرتجعات لاحقاً.',
-                                    style: TextStyle(
-                                      color: theme.colorScheme.onPrimaryContainer,
-                                    ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'سجل تاريخ التسليم والكمية المسلمة. يمكنك تعديل المرتجعات لاحقاً.',
+                                  style: TextStyle(
+                                    color: theme.colorScheme.onPrimaryContainer,
+                                    fontSize: 13,
                                   ),
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 20),
                       
                       // Restaurant selector (only show if not pre-selected)
                       if (widget.restaurantId == null)

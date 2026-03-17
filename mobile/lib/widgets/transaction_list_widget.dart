@@ -57,87 +57,206 @@ class TransactionListWidget extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: theme.colorScheme.primaryContainer,
-          child: Icon(
-            Icons.receipt,
-            color: theme.colorScheme.onPrimaryContainer,
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              theme.colorScheme.surface,
+              theme.colorScheme.surface.withOpacity(0.8),
+            ],
           ),
         ),
-        title: Text(
-          DateFormat('yyyy-MM-dd').format(transaction.date),
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('علب مسلمة: ${transaction.jarsSold}'),
-            if (transaction.jarsReturned > 0) ...[
-              Text('علب مرتجعة: ${transaction.jarsReturned}'),
-              Text(
-                'عدد العلب الفارغة: ${transaction.jarsSold - transaction.jarsReturned}',
-                style: TextStyle(
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ] else
-              Text(
-                'بانتظار المرتجعات...',
-                style: TextStyle(
-                  color: theme.colorScheme.secondary,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-          ],
-        ),
-        trailing: isAdmin
-            ? PopupMenuButton(
-                itemBuilder: (context) => [
-                  if (transaction.jarsReturned == 0)
-                    const PopupMenuItem(
-                      value: 'add_returns',
-                      child: Row(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          Icons.receipt,
+                          color: theme.colorScheme.onPrimaryContainer,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(Icons.add),
-                          SizedBox(width: 8),
-                          Text('إضافة المرتجعات'),
+                          Text(
+                            DateFormat('yyyy-MM-dd').format(transaction.date),
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            DateFormat('EEEE', 'ar').format(transaction.date),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.secondary,
+                            ),
+                          ),
                         ],
                       ),
-                    ),
-                  const PopupMenuItem(
-                    value: 'edit',
-                    child: Row(
-                      children: [
-                        Icon(Icons.edit),
-                        SizedBox(width: 8),
-                        Text('تعديل التاريخ'),
-                      ],
-                    ),
+                    ],
                   ),
-                  const PopupMenuItem(
-                    value: 'delete',
-                    child: Row(
-                      children: [
-                        Icon(Icons.delete, color: Colors.red),
-                        SizedBox(width: 8),
-                        Text('حذف', style: TextStyle(color: Colors.red)),
+                  if (isAdmin)
+                    PopupMenuButton(
+                      itemBuilder: (context) => [
+                        if (transaction.jarsReturned == 0)
+                          const PopupMenuItem(
+                            value: 'add_returns',
+                            child: Row(
+                              children: [
+                                Icon(Icons.add, size: 20),
+                                SizedBox(width: 8),
+                                Text('إضافة المرتجعات'),
+                              ],
+                            ),
+                          ),
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              Icon(Icons.edit, size: 20),
+                              SizedBox(width: 8),
+                              Text('تعديل'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete, size: 20, color: Colors.red),
+                              SizedBox(width: 8),
+                              Text('حذف', style: TextStyle(color: Colors.red)),
+                            ],
+                          ),
+                        ),
                       ],
+                      onSelected: (value) {
+                        if (value == 'add_returns') {
+                          _addReturnsToTransaction(context, transaction);
+                        } else if (value == 'edit') {
+                          _editTransactionDate(context, transaction);
+                        } else if (value == 'delete') {
+                          _deleteTransaction(context, transaction, l10n);
+                        }
+                      },
                     ),
-                  ),
                 ],
-                onSelected: (value) {
-                  if (value == 'add_returns') {
-                    _addReturnsToTransaction(context, transaction);
-                  } else if (value == 'edit') {
-                    _editTransactionDate(context, transaction);
-                  } else if (value == 'delete') {
-                    _deleteTransaction(context, transaction, l10n);
-                  }
-                },
-              )
-            : null,
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildStatBox(
+                    context,
+                    'المسلم',
+                    '${transaction.jarsSold}',
+                    Icons.local_shipping,
+                  ),
+                  _buildStatBox(
+                    context,
+                    'المرتجع',
+                    '${transaction.jarsReturned}',
+                    Icons.assignment_return,
+                  ),
+                  if (transaction.jarsReturned > 0)
+                    _buildStatBox(
+                      context,
+                      'الفارغة',
+                      '${transaction.jarsSold - transaction.jarsReturned}',
+                      Icons.inventory_2,
+                      isHighlight: true,
+                    ),
+                ],
+              ),
+              if (transaction.jarsReturned == 0)
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.secondaryContainer,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'بانتظار المرتجعات...',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSecondaryContainer,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatBox(
+    BuildContext context,
+    String label,
+    String value,
+    IconData icon, {
+    bool isHighlight = false,
+  }) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: isHighlight
+            ? theme.colorScheme.primaryContainer
+            : theme.colorScheme.secondaryContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            icon,
+            size: 20,
+            color: isHighlight
+                ? theme.colorScheme.onPrimaryContainer
+                : theme.colorScheme.onSecondaryContainer,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: isHighlight
+                  ? theme.colorScheme.onPrimaryContainer
+                  : theme.colorScheme.onSecondaryContainer,
+            ),
+          ),
+          Text(
+            value,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: isHighlight
+                  ? theme.colorScheme.onPrimaryContainer
+                  : theme.colorScheme.onSecondaryContainer,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -317,57 +317,127 @@ class _RestaurantListScreenState extends State<RestaurantListScreen> {
     return RefreshIndicator(
       onRefresh: _loadRestaurants,
       child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         itemCount: _restaurants!.length,
         itemBuilder: (context, index) {
           final restaurant = _restaurants![index];
-          return Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: ListTile(
-              leading: CircleAvatar(
-                radius: 28,
-                backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                backgroundImage: restaurant.photoUrl != null && restaurant.photoUrl!.isNotEmpty
-                    ? (restaurant.photoUrl!.startsWith('data:image')
-                        ? MemoryImage(
-                            base64Decode(restaurant.photoUrl!.split(',')[1]),
-                          )
-                        : (restaurant.photoUrl!.startsWith('http')
-                            ? NetworkImage(restaurant.photoUrl!) as ImageProvider
-                            : FileImage(File(restaurant.photoUrl!)) as ImageProvider)) as ImageProvider
-                    : null,
-                child: restaurant.photoUrl == null || restaurant.photoUrl!.isEmpty
-                    ? Icon(
-                        Icons.restaurant,
-                        color: Theme.of(context).colorScheme.onPrimaryContainer,
-                      )
-                    : null,
+          return GestureDetector(
+            onTap: () => _navigateToRestaurantDetail(restaurant),
+            child: Card(
+              margin: const EdgeInsets.symmetric(vertical: 8),
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
               ),
-              title: Text(
-                restaurant.name,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              subtitle: restaurant.balance != null
-                  ? Text(
-                      'عدد العلب الفارغة: ${restaurant.balance!.abs().toInt()}',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.w600,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Theme.of(context).colorScheme.surface,
+                      Theme.of(context).colorScheme.surface.withOpacity(0.8),
+                    ],
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      // Restaurant Photo
+                      Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            width: 80,
+                            height: 80,
+                            color: Theme.of(context).colorScheme.primaryContainer,
+                            child: restaurant.photoUrl != null && restaurant.photoUrl!.isNotEmpty
+                                ? (restaurant.photoUrl!.startsWith('data:image')
+                                    ? Image.memory(
+                                        base64Decode(restaurant.photoUrl!.split(',')[1]),
+                                        fit: BoxFit.cover,
+                                      )
+                                    : (restaurant.photoUrl!.startsWith('http')
+                                        ? Image.network(
+                                            restaurant.photoUrl!,
+                                            fit: BoxFit.cover,
+                                          )
+                                        : Image.file(
+                                            File(restaurant.photoUrl!),
+                                            fit: BoxFit.cover,
+                                          )))
+                                : Icon(
+                                    Icons.restaurant,
+                                    size: 40,
+                                    color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                  ),
+                          ),
+                        ),
                       ),
-                    )
-                  : null,
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (isAdmin)
-                    IconButton(
-                      icon: const Icon(Icons.more_vert),
-                      onPressed: () => _showRestaurantOptions(restaurant, isAdmin),
-                      tooltip: 'خيارات',
-                    ),
-                  const Icon(Icons.chevron_left),
-                ],
+                      const SizedBox(width: 16),
+                      // Restaurant Info
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              restaurant.name,
+                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.primaryContainer,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                'عدد العلب الفارغة: ${restaurant.balance!.abs().toInt()}',
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Actions
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (isAdmin)
+                            IconButton(
+                              icon: const Icon(Icons.more_vert),
+                              onPressed: () => _showRestaurantOptions(restaurant, isAdmin),
+                              tooltip: 'خيارات',
+                              iconSize: 20,
+                            ),
+                          const Icon(Icons.chevron_left, size: 20),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              onTap: () => _navigateToRestaurantDetail(restaurant),
             ),
           );
         },
