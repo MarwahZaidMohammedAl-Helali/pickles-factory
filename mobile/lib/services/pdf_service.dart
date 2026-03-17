@@ -46,36 +46,45 @@ class PdfService {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              // Header
-              pw.Container(
-                padding: const pw.EdgeInsets.all(20),
-                decoration: pw.BoxDecoration(
-                  color: PdfColors.blue50,
-                  borderRadius: pw.BorderRadius.circular(10),
-                ),
-                child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Text(
-                      'تقرير المطعم',
-                      style: pw.TextStyle(
-                        fontSize: 24,
-                        fontWeight: pw.FontWeight.bold,
-                        font: arabicFont,
+              // Header with Logo and Title
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        'تقرير المطعم',
+                        style: pw.TextStyle(
+                          fontSize: 24,
+                          fontWeight: pw.FontWeight.bold,
+                          font: arabicFont,
+                        ),
+                      ),
+                      pw.SizedBox(height: 5),
+                      pw.Text(
+                        restaurant.name,
+                        style: pw.TextStyle(fontSize: 18, font: arabicFont),
+                      ),
+                    ],
+                  ),
+                  // Restaurant Logo
+                  if (restaurant.photoUrl != null && restaurant.photoUrl!.isNotEmpty)
+                    pw.Container(
+                      width: 80,
+                      height: 80,
+                      decoration: pw.BoxDecoration(
+                        border: pw.Border.all(color: PdfColors.grey300),
+                        borderRadius: pw.BorderRadius.circular(8),
+                      ),
+                      child: pw.Center(
+                        child: pw.Text(
+                          '🍽️',
+                          style: const pw.TextStyle(fontSize: 40),
+                        ),
                       ),
                     ),
-                    pw.SizedBox(height: 10),
-                    pw.Text(
-                      restaurant.name,
-                      style: pw.TextStyle(fontSize: 18, font: arabicFont),
-                    ),
-                    pw.SizedBox(height: 5),
-                    pw.Text(
-                      'الرصيد الإجمالي: ${restaurant.balance?.toStringAsFixed(3) ?? '0.000'} د.أ',
-                      style: pw.TextStyle(fontSize: 14, font: arabicFont),
-                    ),
-                  ],
-                ),
+                ],
               ),
               pw.SizedBox(height: 20),
 
@@ -156,7 +165,6 @@ class PdfService {
                       _buildTableCell('التاريخ', arabicFont, isHeader: true),
                       _buildTableCell('المسلم', arabicFont, isHeader: true),
                       _buildTableCell('المرتجع', arabicFont, isHeader: true),
-                      _buildTableCell('الفارغة', arabicFont, isHeader: true),
                     ],
                   ),
                   // Data rows
@@ -164,8 +172,7 @@ class PdfService {
                     final index = entry.key + 1;
                     final transaction = entry.value;
                     final delivered = transaction.jarsDelivered.toDouble();
-                    final returned = transaction.jarsReturned.toDouble();
-                    final used = transaction.jarsUsed.toDouble();
+                    final returned = transaction.jarsEmpty.toDouble();
                     final dateStr = '${transaction.deliveryDate.year}-${transaction.deliveryDate.month.toString().padLeft(2, '0')}-${transaction.deliveryDate.day.toString().padLeft(2, '0')}';
 
                     return pw.TableRow(
@@ -174,7 +181,6 @@ class PdfService {
                         _buildTableCell(dateStr, arabicFont),
                         _buildTableCell(delivered.toStringAsFixed(0), arabicFont),
                         _buildTableCell(returned.toStringAsFixed(0), arabicFont),
-                        _buildTableCell(used.toStringAsFixed(0), arabicFont),
                       ],
                     );
                   }).toList(),

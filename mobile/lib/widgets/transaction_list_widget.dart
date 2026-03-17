@@ -174,18 +174,11 @@ class TransactionListWidget extends StatelessWidget {
                   ),
                   _buildStatBox(
                     context,
-                    'الفارغة',
+                    'المرتجع',
                     '${transaction.jarsEmpty}',
                     Icons.assignment_return,
+                    isHighlight: transaction.jarsEmpty > 0,
                   ),
-                  if (transaction.jarsEmpty > 0)
-                    _buildStatBox(
-                      context,
-                      'المتبقي',
-                      '${transaction.jarsDelivered - transaction.jarsEmpty}',
-                      Icons.inventory_2,
-                      isHighlight: true,
-                    ),
                 ],
               ),
               if (transaction.jarsEmpty == 0)

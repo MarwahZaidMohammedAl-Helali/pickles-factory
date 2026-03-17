@@ -58,8 +58,8 @@ class ApiService {
         headers: _getHeaders(),
         body: jsonEncode(body),
       ).timeout(
-        const Duration(seconds: 60),
-        onTimeout: () => throw ApiException('Request timeout - server may be starting up'),
+        const Duration(seconds: 45),
+        onTimeout: () => throw ApiException('Request timeout - server may be starting up. Please try again.'),
       );
       return _handleResponse(response);
     } catch (e) {

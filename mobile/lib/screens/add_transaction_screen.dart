@@ -53,9 +53,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       _selectedRestaurantId = widget.existingTransaction!.restaurantId;
       _selectedProductId = widget.existingTransaction!.productId;
       _deliveryDate = widget.existingTransaction!.deliveryDate;
-      _returnDate = widget.existingTransaction!.returnDate;
+      _returnDate = widget.existingTransaction!.returnDate ?? DateTime.now();
       _jarsDeliveredController.text = widget.existingTransaction!.jarsDelivered.toString();
-      _jarsReturnedController.text = widget.existingTransaction!.jarsReturned.toString();
+      _jarsReturnedController.text = widget.existingTransaction!.jarsEmpty.toString();
     }
     
     _loadData();
@@ -333,36 +333,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                       ),
                       const SizedBox(height: 16),
                       
-                      // Jars returned
-                      TextFormField(
-                        controller: _jarsReturnedController,
-                        decoration: InputDecoration(
-                          labelText: 'العلب الفارغة',
-                          hintText: 'عدد العلب الفارغة المرجعة',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          filled: true,
-                          prefixIcon: const Icon(Icons.assignment_return),
-                        ),
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                        validator: (value) {
-                          if (value != null && value.isNotEmpty) {
-                            final intValue = int.tryParse(value);
-                            if (intValue == null || intValue < 0) {
-                              return 'يجب أن يكون رقم صحيح';
-                            }
-                            final delivered = int.tryParse(_jarsDeliveredController.text) ?? 0;
-                            if (intValue > delivered) {
-                              return 'لا يمكن أن يكون المرتجع أكثر من المسلم';
-                            }
-                          }
-                          return null;
-                        },
-                        enabled: !_isLoading,
-                      ),
-                      
                       // Return date (only show if returns are entered)
                       if (_jarsReturnedController.text.isNotEmpty && int.tryParse(_jarsReturnedController.text) != null && int.tryParse(_jarsReturnedController.text)! > 0) ...[
                         const SizedBox(height: 16),
@@ -391,67 +361,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                           ),
                         ),
                       ],
-                      
-                      // Calculation display
-                      if (_jarsDeliveredController.text.isNotEmpty && _jarsReturnedController.text.isNotEmpty)
-                        Container(
-                          margin: const EdgeInsets.only(top: 16),
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.secondaryContainer,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Column(
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text('المسلم:', style: theme.textTheme.titleMedium),
-                                  Text(
-                                    _jarsDeliveredController.text,
-                                    style: theme.textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text('الفارغة:', style: theme.textTheme.titleMedium),
-                                  Text(
-                                    _jarsReturnedController.text,
-                                    style: theme.textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              Divider(height: 24, thickness: 1),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    'المتبقي:',
-                                    style: theme.textTheme.titleLarge?.copyWith(
-                                      color: theme.colorScheme.primary,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  Text(
-                                    (int.parse(_jarsDeliveredController.text) - 
-                                     int.parse(_jarsReturnedController.text)).toString(),
-                                    style: theme.textTheme.titleLarge?.copyWith(
-                                      color: theme.colorScheme.primary,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
                       
                       const SizedBox(height: 24),
                       
