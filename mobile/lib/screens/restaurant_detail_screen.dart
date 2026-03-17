@@ -253,11 +253,11 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
                       errorBuilder: (context, error, stackTrace) {
                         return Container(
                           height: 200,
-                          color: theme.colorScheme.primaryContainer,
+                          color: Theme.of(context).colorScheme.primaryContainer,
                           child: Icon(
                             Icons.restaurant,
                             size: 80,
-                            color: theme.colorScheme.onPrimaryContainer,
+                            color: Theme.of(context).colorScheme.onPrimaryContainer,
                           ),
                         );
                       },
@@ -267,14 +267,14 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
                   Container(
                     height: 200,
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.primaryContainer,
+                      color: Theme.of(context).colorScheme.primaryContainer,
                       borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
                     ),
                     child: Center(
                       child: Icon(
                         Icons.restaurant,
                         size: 80,
-                        color: theme.colorScheme.onPrimaryContainer,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
                       ),
                     ),
                   ),
@@ -287,7 +287,7 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
                     children: [
                       Text(
                         widget.restaurant.name,
-                        style: theme.textTheme.headlineSmall?.copyWith(
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -295,7 +295,7 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.secondaryContainer,
+                          color: Theme.of(context).colorScheme.secondaryContainer,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Row(
@@ -303,12 +303,12 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
                           children: [
                             Text(
                               'عدد العلب الفارغة:',
-                              style: theme.textTheme.titleMedium,
+                              style: Theme.of(context).textTheme.titleMedium,
                             ),
                             Text(
                               '${(_restaurantDetails?.balance ?? 0.0).abs().toInt()}',
-                              style: theme.textTheme.titleLarge?.copyWith(
-                                color: theme.colorScheme.primary,
+                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                color: Theme.of(context).colorScheme.primary,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -325,7 +325,7 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
           const SizedBox(height: 24),
           Text(
             l10n.transactionsList,
-            style: theme.textTheme.titleLarge?.copyWith(
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
               fontWeight: FontWeight.bold,
             ),
           ),
