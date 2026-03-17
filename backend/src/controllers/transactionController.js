@@ -22,16 +22,8 @@ const createTransaction = async (req, res, next) => {
       });
     }
 
-    if (!productId) {
-      return res.status(400).json({
-        success: false,
-        error: {
-          code: 'VALIDATION_ERROR',
-          message: 'معرف المنتج مطلوب',
-          details: {},
-        },
-      });
-    }
+    // Product ID is optional - use default if not provided
+    const finalProductId = productId || 'default-product';
 
     if (!date) {
       return res.status(400).json({
@@ -102,23 +94,13 @@ const createTransaction = async (req, res, next) => {
       });
     }
 
-    // Verify product exists
-    const product = await Product.findOne({ id: productId });
-    if (!product) {
-      return res.status(404).json({
-        success: false,
-        error: {
-          code: 'NOT_FOUND',
-          message: 'المنتج غير موجود',
-          details: {},
-        },
-      });
-    }
+    // Note: Product validation removed - we use a default product ID
+    // The productId is kept for backward compatibility but not validated
 
     // Create new transaction
     const transaction = new Transaction({
       restaurantId,
-      productId,
+      productId: finalProductId,
       date: new Date(date),
       jarsSold,
       jarsReturned,

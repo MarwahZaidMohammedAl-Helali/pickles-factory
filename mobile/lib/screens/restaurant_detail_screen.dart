@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import '../l10n/app_localizations.dart';
 import '../models/restaurant.dart';
 import '../models/transaction.dart';
@@ -152,7 +153,50 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
     }
   }
 
+  // Helper method to build photo widget - handles both base64 and network URLs
+  Widget _buildPhotoWidget(String photoUrl) {
+    try {
+      if (photoUrl.startsWith('data:image')) {
+        // Base64 encoded image
+        final base64String = photoUrl.split(',').last;
+        final bytes = base64Decode(base64String);
+        return Image.memory(
+          bytes,
+          height: 200,
+          width: double.infinity,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return _buildErrorPlaceholder();
+          },
+        );
+      } else {
+        // Network URL
+        return Image.network(
+          photoUrl,
+          height: 200,
+          width: double.infinity,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return _buildErrorPlaceholder();
+          },
+        );
+      }
+    } catch (e) {
+      return _buildErrorPlaceholder();
+    }
+  }
 
+  Widget _buildErrorPlaceholder() {
+    return Container(
+      height: 200,
+      color: Theme.of(context).colorScheme.primaryContainer,
+      child: Icon(
+        Icons.restaurant,
+        size: 80,
+        color: Theme.of(context).colorScheme.onPrimaryContainer,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -245,23 +289,7 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
                 if (_restaurantDetails?.photoUrl != null && _restaurantDetails!.photoUrl!.isNotEmpty)
                   ClipRRect(
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                    child: Image.network(
-                      _restaurantDetails!.photoUrl!,
-                      height: 200,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          height: 200,
-                          color: Theme.of(context).colorScheme.primaryContainer,
-                          child: Icon(
-                            Icons.restaurant,
-                            size: 80,
-                            color: Theme.of(context).colorScheme.onPrimaryContainer,
-                          ),
-                        );
-                      },
-                    ),
+                    child: _buildPhotoWidget(_restaurantDetails!.photoUrl!),
                   )
                 else
                   Container(
