@@ -41,6 +41,9 @@ class ApiService {
       final response = await http.get(
         Uri.parse('$baseUrl$endpoint'),
         headers: _getHeaders(),
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => throw ApiException('Request timeout - server may be starting up'),
       );
       return _handleResponse(response);
     } catch (e) {
@@ -54,6 +57,9 @@ class ApiService {
         Uri.parse('$baseUrl$endpoint'),
         headers: _getHeaders(),
         body: jsonEncode(body),
+      ).timeout(
+        const Duration(seconds: 60),
+        onTimeout: () => throw ApiException('Request timeout - server may be starting up'),
       );
       return _handleResponse(response);
     } catch (e) {
@@ -67,6 +73,9 @@ class ApiService {
         Uri.parse('$baseUrl$endpoint'),
         headers: _getHeaders(),
         body: jsonEncode(body),
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => throw ApiException('Request timeout - server may be starting up'),
       );
       return _handleResponse(response);
     } catch (e) {
@@ -79,6 +88,9 @@ class ApiService {
       final response = await http.delete(
         Uri.parse('$baseUrl$endpoint'),
         headers: _getHeaders(),
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => throw ApiException('Request timeout - server may be starting up'),
       );
       return _handleResponse(response);
     } catch (e) {

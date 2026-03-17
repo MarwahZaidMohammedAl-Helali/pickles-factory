@@ -7,8 +7,8 @@ class Transaction {
   final DateTime deliveryDate; // When jars were delivered
   final DateTime? returnDate; // When jars were returned (optional)
   final int jarsDelivered; // Jars given to restaurant
-  final int jarsReturned; // Jars returned by restaurant
-  final int jarsUsed; // Calculated: delivered - returned
+  final int jarsEmpty; // Empty jars returned by restaurant (they used these)
+  final int jarsUsed; // Calculated: delivered - empty (same as jarsEmpty)
   final bool isCompleted; // Has returns been added?
 
   Transaction({
@@ -20,13 +20,14 @@ class Transaction {
     required this.deliveryDate,
     this.returnDate,
     required this.jarsDelivered,
-    this.jarsReturned = 0,
+    this.jarsEmpty = 0,
     int? jarsUsed,
     this.isCompleted = false,
-  }) : jarsUsed = jarsUsed ?? (jarsDelivered - jarsReturned);
+  }) : jarsUsed = jarsUsed ?? jarsEmpty;
 
   // Legacy support for old API
   int get jarsSold => jarsDelivered;
+  int get jarsReturned => jarsEmpty; // Alias for backward compatibility
   DateTime get date => deliveryDate;
 
   factory Transaction.fromJson(Map<String, dynamic> json) {
@@ -39,7 +40,7 @@ class Transaction {
         : null;
 
     final jarsDelivered = (json['jarsDelivered'] ?? json['jarsSold'] ?? 0) as int;
-    final jarsReturned = (json['jarsReturned'] ?? 0) as int;
+    final jarsEmpty = (json['jarsEmpty'] ?? json['jarsReturned'] ?? 0) as int;
 
     return Transaction(
       id: json['id'] as String,
@@ -52,9 +53,9 @@ class Transaction {
       deliveryDate: deliveryDate,
       returnDate: returnDate,
       jarsDelivered: jarsDelivered,
-      jarsReturned: jarsReturned,
-      jarsUsed: (json['jarsUsed'] ?? (jarsDelivered - jarsReturned)) as int,
-      isCompleted: json['isCompleted'] as bool? ?? (jarsReturned > 0),
+      jarsEmpty: jarsEmpty,
+      jarsUsed: (json['jarsUsed'] ?? jarsEmpty) as int,
+      isCompleted: json['isCompleted'] as bool? ?? (jarsEmpty > 0),
     );
   }
 
@@ -66,12 +67,13 @@ class Transaction {
       'deliveryDate': deliveryDate.toIso8601String(),
       if (returnDate != null) 'returnDate': returnDate!.toIso8601String(),
       'jarsDelivered': jarsDelivered,
-      'jarsReturned': jarsReturned,
+      'jarsEmpty': jarsEmpty,
       'jarsUsed': jarsUsed,
       'isCompleted': isCompleted,
       // Legacy fields for backward compatibility
       'date': deliveryDate.toIso8601String(),
       'jarsSold': jarsDelivered,
+      'jarsReturned': jarsEmpty,
     };
   }
 
@@ -85,7 +87,7 @@ class Transaction {
     DateTime? deliveryDate,
     DateTime? returnDate,
     int? jarsDelivered,
-    int? jarsReturned,
+    int? jarsEmpty,
     int? jarsUsed,
     bool? isCompleted,
   }) {
@@ -98,7 +100,7 @@ class Transaction {
       deliveryDate: deliveryDate ?? this.deliveryDate,
       returnDate: returnDate ?? this.returnDate,
       jarsDelivered: jarsDelivered ?? this.jarsDelivered,
-      jarsReturned: jarsReturned ?? this.jarsReturned,
+      jarsEmpty: jarsEmpty ?? this.jarsEmpty,
       jarsUsed: jarsUsed ?? this.jarsUsed,
       isCompleted: isCompleted ?? this.isCompleted,
     );

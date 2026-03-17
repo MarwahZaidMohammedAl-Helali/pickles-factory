@@ -118,14 +118,14 @@ class TransactionListWidget extends StatelessWidget {
                   if (isAdmin)
                     PopupMenuButton(
                       itemBuilder: (context) => [
-                        if (transaction.jarsReturned == 0)
+                        if (transaction.jarsEmpty == 0)
                           const PopupMenuItem(
                             value: 'add_returns',
                             child: Row(
                               children: [
                                 Icon(Icons.add, size: 20),
                                 SizedBox(width: 8),
-                                Text('إضافة المرتجعات'),
+                                Text('إضافة العلب الفارغة'),
                               ],
                             ),
                           ),
@@ -169,26 +169,26 @@ class TransactionListWidget extends StatelessWidget {
                   _buildStatBox(
                     context,
                     'المسلم',
-                    '${transaction.jarsSold}',
+                    '${transaction.jarsDelivered}',
                     Icons.local_shipping,
                   ),
                   _buildStatBox(
                     context,
-                    'المرتجع',
-                    '${transaction.jarsReturned}',
+                    'الفارغة',
+                    '${transaction.jarsEmpty}',
                     Icons.assignment_return,
                   ),
-                  if (transaction.jarsReturned > 0)
+                  if (transaction.jarsEmpty > 0)
                     _buildStatBox(
                       context,
-                      'الفارغة',
-                      '${transaction.jarsSold - transaction.jarsReturned}',
+                      'المتبقي',
+                      '${transaction.jarsDelivered - transaction.jarsEmpty}',
                       Icons.inventory_2,
                       isHighlight: true,
                     ),
                 ],
               ),
-              if (transaction.jarsReturned == 0)
+              if (transaction.jarsEmpty == 0)
                 Padding(
                   padding: const EdgeInsets.only(top: 12),
                   child: Container(
@@ -198,7 +198,7 @@ class TransactionListWidget extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      'بانتظار المرتجعات...',
+                      'بانتظار استرجاع العلب الفارغة...',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSecondaryContainer,
                         fontStyle: FontStyle.italic,

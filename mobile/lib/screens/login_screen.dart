@@ -38,12 +38,23 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      
+      // Show a more informative message during login
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('جاري تسجيل الدخول...'),
+          duration: const Duration(seconds: 30),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      
       await authProvider.login(
         _usernameController.text,
         _passwordController.text,
       );
 
       if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
         Navigator.of(context).pushReplacementNamed('/home');
       }
     } catch (e) {
@@ -51,6 +62,10 @@ class _LoginScreenState extends State<LoginScreen> {
         _errorMessage = e.toString();
         _isLoading = false;
       });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      }
     }
   }
 

@@ -6,6 +6,20 @@ class AuthService {
 
   Future<void> initialize() async {
     await _apiService.loadToken();
+    // Warm up the backend to avoid cold start delays
+    _warmupBackend();
+  }
+
+  Future<void> _warmupBackend() async {
+    try {
+      // Make a simple request to wake up the backend
+      await _apiService.get('/health').timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => {'success': false},
+      );
+    } catch (e) {
+      // Silently fail - this is just a warmup
+    }
   }
 
   Future<User> login(String username, String password) async {

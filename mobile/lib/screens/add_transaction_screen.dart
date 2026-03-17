@@ -337,8 +337,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                       TextFormField(
                         controller: _jarsReturnedController,
                         decoration: InputDecoration(
-                          labelText: 'العلب المرتجعة',
-                          hintText: 'عدد البرطمانات المرتجعة (اختياري)',
+                          labelText: 'العلب الفارغة',
+                          hintText: 'عدد العلب الفارغة المرجعة',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -419,7 +419,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text('المرتجع:', style: theme.textTheme.titleMedium),
+                                  Text('الفارغة:', style: theme.textTheme.titleMedium),
                                   Text(
                                     _jarsReturnedController.text,
                                     style: theme.textTheme.titleMedium?.copyWith(
@@ -433,7 +433,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
-                                    'الفاضية:',
+                                    'المتبقي:',
                                     style: theme.textTheme.titleLarge?.copyWith(
                                       color: theme.colorScheme.primary,
                                       fontWeight: FontWeight.bold,
