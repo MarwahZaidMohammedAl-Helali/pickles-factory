@@ -39,7 +39,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   DateTime? _returnDate;
   bool _isLoading = false;
   bool _isLoadingData = true;
-  bool _isAddingReturn = false; // Are we adding returns to existing transaction?
+  bool _isEditingTransaction = false; // Are we editing an existing transaction?
   String? _errorMessage;
 
   @override
@@ -47,14 +47,15 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     super.initState();
     _selectedRestaurantId = widget.restaurantId;
     
-    // If editing existing transaction (adding returns)
+    // If editing existing transaction
     if (widget.existingTransaction != null) {
-      _isAddingReturn = true;
+      _isEditingTransaction = true;
       _selectedRestaurantId = widget.existingTransaction!.restaurantId;
       _selectedProductId = widget.existingTransaction!.productId;
       _deliveryDate = widget.existingTransaction!.deliveryDate;
+      _returnDate = widget.existingTransaction!.returnDate;
       _jarsDeliveredController.text = widget.existingTransaction!.jarsDelivered.toString();
-      _returnDate = DateTime.now();
+      _jarsReturnedController.text = widget.existingTransaction!.jarsReturned.toString();
     }
     
     _loadData();
@@ -156,20 +157,22 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     try {
       await _transactionService.initialize();
       
-      if (_isAddingReturn) {
-        // Update existing transaction with returns
+      if (_isEditingTransaction) {
+        // Update existing transaction with all fields
         await _transactionService.updateTransaction(
           transactionId: widget.existingTransaction!.id,
+          date: _deliveryDate,
+          jarsSold: int.parse(_jarsDeliveredController.text),
           jarsReturned: int.parse(_jarsReturnedController.text),
         );
       } else {
-        // Create new delivery transaction (without returns initially)
+        // Create new delivery transaction
         await _transactionService.addTransaction(
           restaurantId: restaurantId,
           productId: _selectedProductId!,
           date: _deliveryDate,
           jarsSold: int.parse(_jarsDeliveredController.text),
-          jarsReturned: 0, // Always 0 for new transactions
+          jarsReturned: int.parse(_jarsReturnedController.text.isEmpty ? '0' : _jarsReturnedController.text),
         );
       }
 
@@ -193,7 +196,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       textDirection: TextDirection.rtl,
       child: Scaffold(
         appBar: AppBar(
-          title: Text(_isAddingReturn ? l10n.addReturn : l10n.addTransaction),
+          title: Text(_isEditingTransaction ? 'تعديل المعاملة' : l10n.addTransaction),
         ),
         body: _isLoadingData
             ? const Center(child: CircularProgressIndicator())
@@ -205,7 +208,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       // Info card explaining the process
-                      if (!_isAddingReturn)
+                      if (!_isEditingTransaction)
                         Card(
                           color: theme.colorScheme.primaryContainer,
                           child: Padding(
@@ -219,7 +222,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Text(
-                                    'سجل تاريخ التسليم والكمية المسلمة. يمكنك إضافة المرتجعات لاحقاً.',
+                                    'سجل تاريخ التسليم والكمية المسلمة. يمكنك تعديل المرتجعات لاحقاً.',
                                     style: TextStyle(
                                       color: theme.colorScheme.onPrimaryContainer,
                                     ),
@@ -249,7 +252,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                               child: Text(restaurant.name),
                             );
                           }).toList(),
-                          onChanged: (_isLoading || _isAddingReturn)
+                          onChanged: _isLoading
                               ? null
                               : (value) {
                                   setState(() {
@@ -267,7 +270,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                       
                       // Delivery date
                       InkWell(
-                        onTap: (_isLoading || _isAddingReturn) ? null : () => _selectDeliveryDate(context),
+                        onTap: _isLoading ? null : () => _selectDeliveryDate(context),
                         child: InputDecorator(
                           decoration: InputDecoration(
                             labelText: l10n.deliveryDate,
@@ -281,7 +284,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(Formatters.formatDateArabic(_deliveryDate)),
-                              if (!_isAddingReturn) const Icon(Icons.arrow_drop_down),
+                              const Icon(Icons.arrow_drop_down),
                             ],
                           ),
                         ),
@@ -312,30 +315,26 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                           }
                           return null;
                         },
-                        enabled: !_isLoading && !_isAddingReturn,
-                        readOnly: _isAddingReturn,
+                        enabled: !_isLoading,
                       ),
                       const SizedBox(height: 16),
                       
-                      // Jars returned (only show when adding returns to existing transaction)
-                      if (_isAddingReturn)
-                        TextFormField(
-                          controller: _jarsReturnedController,
-                          decoration: InputDecoration(
-                            labelText: 'العلب المرتجعة',
-                            hintText: 'عدد البرطمانات المرتجعة',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            filled: true,
-                            prefixIcon: const Icon(Icons.assignment_return),
+                      // Jars returned
+                      TextFormField(
+                        controller: _jarsReturnedController,
+                        decoration: InputDecoration(
+                          labelText: 'العلب المرتجعة',
+                          hintText: 'عدد البرطمانات المرتجعة (اختياري)',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return l10n.requiredField;
-                            }
+                          filled: true,
+                          prefixIcon: const Icon(Icons.assignment_return),
+                        ),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        validator: (value) {
+                          if (value != null && value.isNotEmpty) {
                             final intValue = int.tryParse(value);
                             if (intValue == null || intValue < 0) {
                               return 'يجب أن يكون رقم صحيح';
@@ -344,27 +343,15 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                             if (intValue > delivered) {
                               return 'لا يمكن أن يكون المرتجع أكثر من المسلم';
                             }
-                            return null;
-                          },
-                          enabled: !_isLoading,
-                        ),
+                          }
+                          return null;
+                        },
+                        enabled: !_isLoading,
+                      ),
                       
-                      // Return section (only if adding returns)
-                      if (_isAddingReturn) ...[
-                        const SizedBox(height: 24),
-                        Divider(thickness: 2, color: theme.colorScheme.primary.withOpacity(0.3)),
+                      // Return date (only show if returns are entered)
+                      if (_jarsReturnedController.text.isNotEmpty && int.tryParse(_jarsReturnedController.text) != null && int.tryParse(_jarsReturnedController.text)! > 0) ...[
                         const SizedBox(height: 16),
-                        
-                        Text(
-                          'إضافة المرتجعات',
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            color: theme.colorScheme.primary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        
-                        // Return date
                         InkWell(
                           onTap: _isLoading ? null : () => _selectReturnDate(context),
                           child: InputDecorator(
@@ -389,101 +376,68 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 16),
-                        
-                        // Jars returned
-                        TextFormField(
-                          controller: _jarsReturnedController,
-                          decoration: InputDecoration(
-                            labelText: l10n.jarsReturned,
-                            hintText: 'عدد البرطمانات المرتجعة',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            filled: true,
-                            prefixIcon: const Icon(Icons.assignment_return),
-                          ),
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return l10n.requiredField;
-                            }
-                            final intValue = int.tryParse(value);
-                            if (intValue == null || intValue < 0) {
-                              return 'يجب أن يكون رقم صحيح';
-                            }
-                            final delivered = int.tryParse(_jarsDeliveredController.text) ?? 0;
-                            if (intValue > delivered) {
-                              return 'لا يمكن أن يكون المرتجع أكثر من المسلم';
-                            }
-                            return null;
-                          },
-                          enabled: !_isLoading,
-                        ),
-                        
-                        // Calculation display
-                        if (_jarsDeliveredController.text.isNotEmpty && 
-                            _jarsReturnedController.text.isNotEmpty)
-                          Container(
-                            margin: const EdgeInsets.only(top: 16),
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.secondaryContainer,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Column(
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text('المسلم:', style: theme.textTheme.titleMedium),
-                                    Text(
-                                      _jarsDeliveredController.text,
-                                      style: theme.textTheme.titleMedium?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text('المرتجع:', style: theme.textTheme.titleMedium),
-                                    Text(
-                                      _jarsReturnedController.text,
-                                      style: theme.textTheme.titleMedium?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                Divider(height: 24, thickness: 1),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      'الفاضية:',
-                                      style: theme.textTheme.titleLarge?.copyWith(
-                                        color: theme.colorScheme.primary,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    Text(
-                                      (int.parse(_jarsDeliveredController.text) - 
-                                       int.parse(_jarsReturnedController.text)).toString(),
-                                      style: theme.textTheme.titleLarge?.copyWith(
-                                        color: theme.colorScheme.primary,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
                       ],
+                      
+                      // Calculation display
+                      if (_jarsDeliveredController.text.isNotEmpty && _jarsReturnedController.text.isNotEmpty)
+                        Container(
+                          margin: const EdgeInsets.only(top: 16),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.secondaryContainer,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('المسلم:', style: theme.textTheme.titleMedium),
+                                  Text(
+                                    _jarsDeliveredController.text,
+                                    style: theme.textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('المرتجع:', style: theme.textTheme.titleMedium),
+                                  Text(
+                                    _jarsReturnedController.text,
+                                    style: theme.textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Divider(height: 24, thickness: 1),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'الفاضية:',
+                                    style: theme.textTheme.titleLarge?.copyWith(
+                                      color: theme.colorScheme.primary,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    (int.parse(_jarsDeliveredController.text) - 
+                                     int.parse(_jarsReturnedController.text)).toString(),
+                                    style: theme.textTheme.titleLarge?.copyWith(
+                                      color: theme.colorScheme.primary,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
                       
                       const SizedBox(height: 24),
                       
@@ -538,7 +492,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                                 ),
                               )
                             : Text(
-                                _isAddingReturn ? 'حفظ المرتجعات' : l10n.saveDelivery,
+                                _isEditingTransaction ? 'حفظ التعديلات' : l10n.saveDelivery,
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,

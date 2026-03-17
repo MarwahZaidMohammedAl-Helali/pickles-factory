@@ -27,17 +27,11 @@ class PdfService {
     double totalDelivered = 0;
     double totalReturned = 0;
     double totalUsed = 0;
-    double totalAmount = 0;
 
     for (var transaction in transactions) {
       totalDelivered += transaction.jarsDelivered.toDouble();
       totalReturned += transaction.jarsReturned.toDouble();
       totalUsed += transaction.jarsUsed.toDouble();
-      
-      final product = productMap[transaction.productId];
-      if (product != null) {
-        totalAmount += transaction.jarsUsed.toDouble() * product.price;
-      }
     }
 
     // Add page with RTL support and Arabic font
@@ -120,24 +114,16 @@ class PdfService {
                       ],
                     ),
                     pw.SizedBox(height: 5),
-                    pw.Row(
-                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                      children: [
-                        pw.Text('إجمالي الفارغة:', style: pw.TextStyle(font: arabicFont)),
-                        pw.Text('${totalUsed.toStringAsFixed(0)} برطمان', style: pw.TextStyle(font: arabicFont)),
-                      ],
-                    ),
-                    pw.SizedBox(height: 5),
                     pw.Divider(),
                     pw.Row(
                       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                       children: [
                         pw.Text(
-                          'المبلغ الإجمالي:',
+                          'إجمالي العلب الفارغة:',
                           style: pw.TextStyle(fontWeight: pw.FontWeight.bold, font: arabicFont),
                         ),
                         pw.Text(
-                          '${totalAmount.toStringAsFixed(3)} د.أ',
+                          '${totalUsed.toStringAsFixed(0)} برطمان',
                           style: pw.TextStyle(fontWeight: pw.FontWeight.bold, font: arabicFont),
                         ),
                       ],
@@ -166,28 +152,29 @@ class PdfService {
                   pw.TableRow(
                     decoration: const pw.BoxDecoration(color: PdfColors.grey200),
                     children: [
-                      _buildTableCell('المنتج', arabicFont, isHeader: true),
+                      _buildTableCell('الرقم', arabicFont, isHeader: true),
+                      _buildTableCell('التاريخ', arabicFont, isHeader: true),
                       _buildTableCell('المسلم', arabicFont, isHeader: true),
                       _buildTableCell('المرتجع', arabicFont, isHeader: true),
                       _buildTableCell('الفارغة', arabicFont, isHeader: true),
-                      _buildTableCell('المبلغ', arabicFont, isHeader: true),
                     ],
                   ),
                   // Data rows
-                  ...transactions.map((transaction) {
-                    final product = productMap[transaction.productId];
+                  ...transactions.asMap().entries.map((entry) {
+                    final index = entry.key + 1;
+                    final transaction = entry.value;
                     final delivered = transaction.jarsDelivered.toDouble();
                     final returned = transaction.jarsReturned.toDouble();
                     final used = transaction.jarsUsed.toDouble();
-                    final amount = used * (product?.price ?? 0);
+                    final dateStr = '${transaction.deliveryDate.year}-${transaction.deliveryDate.month.toString().padLeft(2, '0')}-${transaction.deliveryDate.day.toString().padLeft(2, '0')}';
 
                     return pw.TableRow(
                       children: [
-                        _buildTableCell(product?.name ?? 'غير معروف', arabicFont),
+                        _buildTableCell(index.toString(), arabicFont),
+                        _buildTableCell(dateStr, arabicFont),
                         _buildTableCell(delivered.toStringAsFixed(0), arabicFont),
                         _buildTableCell(returned.toStringAsFixed(0), arabicFont),
                         _buildTableCell(used.toStringAsFixed(0), arabicFont),
-                        _buildTableCell('${amount.toStringAsFixed(3)} د.أ', arabicFont),
                       ],
                     );
                   }).toList(),
@@ -195,20 +182,6 @@ class PdfService {
               ),
 
               pw.Spacer(),
-
-              // Footer
-              pw.Container(
-                padding: const pw.EdgeInsets.all(10),
-                decoration: const pw.BoxDecoration(
-                  border: pw.Border(top: pw.BorderSide(color: PdfColors.grey300)),
-                ),
-                child: pw.Center(
-                  child: pw.Text(
-                    'تم إنشاء التقرير بواسطة نظام إدارة مصنع المخللات',
-                    style: pw.TextStyle(fontSize: 10, color: PdfColors.grey600, font: arabicFont),
-                  ),
-                ),
-              ),
             ],
           );
         },
